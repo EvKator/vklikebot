@@ -18,7 +18,7 @@ function CreateUser(msg){
         "vk_accs" : [],
         "lastVkPhotoLiked" : "",
         "tasks" : []
-    }
+    };
     return NewUser;
 }
 

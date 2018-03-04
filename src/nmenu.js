@@ -1,4 +1,4 @@
-var dataManage = require('dataManage.js');
+//var dataManage = require('dataManage.js');
 import bot from './TeleBot';
 
 function sendNewMenu(user) {
@@ -11,11 +11,8 @@ function sendNewMenu(user) {
                 [{"text":"Earn coins", "callback_data" :"/earn"}]
             ]
         }};
-    bot.sendMessage(user.id,"Choose what do you want to do from list below", menu).then(function (msg) {
-        var m_id = msg.message_id;
-        //bot.editMessageText( 'new text', { chat_id: chat_id, message_id: m_id });
-        user.menu_id = m_id;
-        dataManage.changeUser(user);
+    bot.sendMessage(user.Id,"Choose what do you want to do from list below", menu).then(function (msg) {
+        user.MenuId = msg.message_id;
     });
 }
 
@@ -27,10 +24,9 @@ function sendMenu(user) {
                 [{"text":"My tasks", "callback_data" :"/tasks"}],
                 [{"text":"Earn coins", "callback_data" :"/earn"}]
             ]
-        }
+        };
         var text = "Choose what do you want to do from list below";
-    bot.editMessageText( text, { chat_id: user.id, message_id: user.menu_id, reply_markup:reply_markup });
-    //bot.editMessageReplyMarkup(menu,{ chat_id: user.id, message_id: user.menu_id });
+    bot.editMessageText( text, { chat_id: user.Id, message_id: user.MenuId, reply_markup:reply_markup });
 }
 
 
@@ -41,8 +37,8 @@ function sendProfilesEditionMenu(user) {
                 [{"text":"Remove VK profile", "callback_data" :"/removeVkAcc"}],
                 [{"text":"Back", "callback_data" :"/menu"}]
             ]
-        }
-    bot.editMessageReplyMarkup(menu,{ chat_id: user.id, message_id: user.menu_id });
+        };
+    bot.editMessageReplyMarkup(menu,{ chat_id: user.Id, message_id: user.MenuId });
 }
 
 function sendTasksMenu(user) {
@@ -52,8 +48,8 @@ function sendTasksMenu(user) {
                 [{"text":"Delete task", "callback_data" :"/deleteTask"}],
                 [{"text":"Back", "callback_data" :"/menu"}]
             ]
-        }
-    bot.editMessageReplyMarkup(menu,{ chat_id: user.id, message_id: user.menu_id });
+        };
+    bot.editMessageReplyMarkup(menu,{ chat_id: user.Id, message_id: user.MenuId });
 }
 
 function sendCreationTaskMenu(user) {
@@ -63,8 +59,8 @@ function sendCreationTaskMenu(user) {
                 [{"text":"Likes on video", "callback_data" :"/vk_video_like"}],
                 [{"text":"Back", "callback_data" :"/menu"}]
             ]
-        }
-    bot.editMessageReplyMarkup(menu,{ chat_id: user.id, message_id: user.menu_id });
+        };
+    bot.editMessageReplyMarkup(menu,{ chat_id: user.Id, message_id: user.MenuId });
 }
 
 function sendEarnMenu(user) {
@@ -74,8 +70,8 @@ function sendEarnMenu(user) {
                 [{"text":"Likes on video", "callback_data" :"/earn_vk_video_like"}],
                 [{"text":"Back", "callback_data" :"/menu"}]
             ]
-        }
-    bot.editMessageReplyMarkup(menu,{ chat_id: user.id, message_id: user.menu_id });
+        };
+    bot.editMessageReplyMarkup(menu,{ chat_id: user.Id, message_id: user.MenuId });
 }
 
 
@@ -84,14 +80,14 @@ function sendEarnOperationButton(user, task) {
         parse_mode = "Markdown";
         reply_markup = {
             "inline_keyboard": [
-                [{"text":"Go To Photo", "url" : task.url, "callback_data" :"/goToPhoto(" + task.name + ")"}],
-                [{"text":"Confirm", "callback_data" :"/goToPhoto(" + task.name + ")"}],
+                [{"text":"Go To Photo", "url" : task.Link, "callback_data" :"/goToPhoto(" + task.Id + ")"}],
+                [{"text":"Confirm", "callback_data" :"/goToPhoto(" + task.Id + ")"}],
                 [{"text":"Back", "callback_data" :"/menu"}]
             ]
         };
     //bot.sendMessage(user.id,"Choose what do you want to do from list below", urlkey);
     var text = "Choose what do you want to do from list below";
-    bot.editMessageText( text , { chat_id: user.id, message_id: user.menu_id, reply_markup:reply_markup, parse_mode : parse_mode });
+    bot.editMessageText( text , { chat_id: user.Id, message_id: user.MenuId, reply_markup:reply_markup, parse_mode : parse_mode });
 }
 
 function sendStats(user) {
@@ -99,15 +95,14 @@ function sendStats(user) {
             "inline_keyboard": [
                 [{"text":"Back", "callback_data" :"/menu"}]
             ]
-    }
+    };
     var accCount = 0;
-    if(typeof user.vk_accs !== 'undefined' && typeof user.vk_accs !== null)
-        accCount = user.vk_accs.length;
-    var statText = "<b>Stats of " + user.first_name + " " + user.last_name + " :</b>\n" +
+    if(typeof user.VkAcc !== 'undefined' && typeof user.VkAcc !== null)
+        accCount = user.VkAcc.length;
+    var statText = "<b>Stats of " + user.Firstname + " " + user.Lastname + " :</b>\n" +
         "Connected VK accounts: " + accCount + "\n" +
-        "Balance: " + user.balance + " coins";
-    //bot.sendMessage(chat_id, statText, back, {});
-    bot.editMessageText( statText, { chat_id: user.id, message_id: user.menu_id, reply_markup:reply_markup, parse_mode : "HTML" });
+        "Balance: " + user.Balance + " coins";
+    bot.editMessageText( statText, { chat_id: user.Id, message_id: user.MenuId, reply_markup:reply_markup, parse_mode : "HTML" });
 }
 
 

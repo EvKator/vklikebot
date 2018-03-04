@@ -1,6 +1,9 @@
 //var inter = require('./interaction');
-console.log('started');
-//var q = require('./asd');
-//var as = require("node-telegram-bot-api");
-import as from "node-telegram-bot-api";
-//import {tbot} from 'node-telegram-bot-api';
+import Task from './task';
+import VkPhotoLikeTask from './VkPhotoLikeTask';
+
+
+let url = 'https://vk.com/id432100574?z=photo432100574_456239018%2Falbum432100574_0%2Frev';
+let id = 'id432100574';
+//let liked = Check.hasLiked(url, id);
+//console.log(liked);

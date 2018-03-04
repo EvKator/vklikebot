@@ -1,34 +1,32 @@
 let request = require('request');
 let cheerio = require('cheerio');
-/*let dataManage = require('dataManage.js');
-let menu = require('nmenu');
-let work = require('work.js');
-let task = require('task.js');
-*/
-import bot from './TeleBot'
+let menu = require('./nmenu');
+//let work = require('work.js');
+//let task = require('task.js');
+
+import task from './task';
+import bot from './TeleBot';
 import User from './user';
 
 
 
 ////////////////////////////////////////TASK/////////////////////////////////////////////////////////
-bot.onText(/\/start/, function (msg, match) {
-    let user = User.getSender(msg);
-    console.log(user);
-    //user = dataManage.getUser(msg.from.id);
-    //var greeting = "Hello! This bot will help you easily and reliably exchange your " +
-    //    "likes with our other users. To connect your account, click the appropriate button.";
-    //if(!dataManage.isUserExist(msg.from.id)){
-    //    register(msg);
-    //}
-    ////bot.sendMessage(msg.chat.id, greeting);
-    //menu.sendNewMenu(user);
+bot.onText(/\/start/, async function (msg, match) {
+
+    let user = await User.getSender(msg);
+    console.log("new user:" + user.ExistInDB);
+    if(!user.ExistInDB){
+        console.log('dsdsdssssssssssssssssssssssssssssssss');
+        await user.saveToDB();
+        var greeting = "Hello! This bot will help you easily and reliably exchange your " +
+                "likes with our other users. To connect your account, click the appropriate button.";
+        user.sendMessage(greeting);
+    }
 });
 
-bot.onText(/\/menu/, function (msg, match) {
-    /*user = dataManage.getUser(msg.from.id);
-    dataManage.setStatus(user, 'free');
-    var user = dataManage.getUser(msg.from.id);
-    menu.sendNewMenu(user);*/
+bot.onText(/\/menu/, async function (msg, match) {
+    let user = await User.getSender(msg);
+    menu.sendNewMenu(user);
 });
 
 bot.on('callback_query', function (msg) {
