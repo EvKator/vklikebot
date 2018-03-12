@@ -1,118 +1,124 @@
-//var dataManage = require('dataManage.js');
 import bot from './TeleBot';
 
-function sendNewMenu(user) {
-    var menu = {
-        reply_markup: {
-            "inline_keyboard": [
-                [{"text":"My statistics", "callback_data" :"/stats"}],
-                [{"text":"My VK profiles", "callback_data" :"/profiles"}],
-                [{"text":"My tasks", "callback_data" :"/tasks"}],
-                [{"text":"Earn coins", "callback_data" :"/earn"}]
-            ]
-        }};
-    bot.sendMessage(user.Id,"Choose what do you want to do from list below", menu).then(function (msg) {
-        user.MenuId = msg.message_id;
-    });
-}
+export default class nMenu {
 
-function sendMenu(user) {
-    var reply_markup = {
+    static sendNewMenu(user) {
+        const menu = {
+            reply_markup: {
+                "inline_keyboard": [
+                    [{"text": "My statistics", "callback_data": "/stats"}],
+                    [{"text": "My VK profiles", "callback_data": "/profiles"}],
+                    [{"text": "My tasks", "callback_data": "/tasks"}],
+                    [{"text": "Earn coins", "callback_data": "/earn"}]
+                ]
+            }
+        };
+        bot.sendMessage(user.id, "Choose what do you want to do from list below", menu).then(function (msg) {
+            nMenu.deleteMenu(user);
+            user.menu_id = msg.message_id;
+        });
+    }
+
+    static sendMenu(user) {
+        const reply_markup = {
             "inline_keyboard": [
-                [{"text":"My statistics", "callback_data" :"/stats"}],
-                [{"text":"My VK profiles", "callback_data" :"/profiles"}],
-                [{"text":"My tasks", "callback_data" :"/tasks"}],
-                [{"text":"Earn coins", "callback_data" :"/earn"}]
+                [{"text": "My statistics", "callback_data": "/stats"}],
+                [{"text": "My VK profiles", "callback_data": "/profiles"}],
+                [{"text": "My tasks", "callback_data": "/tasks"}],
+                [{"text": "Earn coins", "callback_data": "/earn"}]
             ]
         };
-        var text = "Choose what do you want to do from list below";
-    bot.editMessageText( text, { chat_id: user.Id, message_id: user.MenuId, reply_markup:reply_markup });
-}
+        let text = "Choose what do you want to do from list below";
+        bot.editMessageText(text, {chat_id: user.id, message_id: user.menu_id, reply_markup: reply_markup});
+    }
 
+    static async deleteMenu(user){
+        await bot.deleteMessage(user.id, user.menu_id);
+    }
 
-function sendProfilesEditionMenu(user) {
-    var menu = {
+    static async sendProfilesEditionMenu(user) {
+        const menu = {
             "inline_keyboard": [
-                [{"text":"Add VK profile", "callback_data" :"/addVkAcc"}],
-                [{"text":"Remove VK profile", "callback_data" :"/removeVkAcc"}],
-                [{"text":"Back", "callback_data" :"/menu"}]
+                [{"text": "Add VK profile", "callback_data": "/addVkAcc"}, {"text": "Remove VK profile", "callback_data": "/removeVkAcc"}],
+                [{"text": "Back", "callback_data": "/menu"}]
             ]
         };
-    bot.editMessageReplyMarkup(menu,{ chat_id: user.Id, message_id: user.MenuId });
-}
+        await bot.editMessageReplyMarkup(menu, {chat_id: user.id, message_id: user.menu_id});
+    }
 
-function sendTasksMenu(user) {
-    var menu = {
+    static async sendTasksMenu(user) {
+        const menu = {
             "inline_keyboard": [
-                [{"text":"Create task", "callback_data" :"/createTask"}],
-                [{"text":"Delete task", "callback_data" :"/deleteTask"}],
-                [{"text":"Back", "callback_data" :"/menu"}]
+                [{"text": "Create task", "callback_data": "/createTask(vk_photo_like)"},{"text": "Delete task", "callback_data": "/deleteTask"}],
+                [{"text": "Back", "callback_data": "/menu"}]
             ]
         };
-    bot.editMessageReplyMarkup(menu,{ chat_id: user.Id, message_id: user.MenuId });
-}
+        await bot.editMessageReplyMarkup(menu, {chat_id: user.id, message_id: user.menu_id});
+    }
 
-function sendCreationTaskMenu(user) {
-    var menu = {
+    static async sendCreationTaskMenu(user) {
+        const menu = {
             "inline_keyboard": [
-                [{"text":"Likes on photo", "callback_data" :"/vk_photo_like"}],
-                [{"text":"Likes on video", "callback_data" :"/vk_video_like"}],
-                [{"text":"Back", "callback_data" :"/menu"}]
+                [{"text": "Likes on VK photo", "callback_data": "/vk_photo_like"}, {"text": "Likes on video", "callback_data": "/vk_video_like"}],
+                [{"text": "Back", "callback_data": "/menu"}]
             ]
         };
-    bot.editMessageReplyMarkup(menu,{ chat_id: user.Id, message_id: user.MenuId });
-}
+        await bot.editMessageReplyMarkup(menu, {chat_id: user.id, message_id: user.menu_id});
+    }
 
-function sendEarnMenu(user) {
-    var menu = {
+    static async sendEarnMenu(user) {
+        const menu = {
             "inline_keyboard": [
-                [{"text":"Likes on photo", "callback_data" :"/earn_vk_photo_like"}],
-                [{"text":"Likes on video", "callback_data" :"/earn_vk_video_like"}],
-                [{"text":"Back", "callback_data" :"/menu"}]
+                [{"text": "Likes on VK photo", "callback_data": "/earn_vk_photo_like"}, {"text": "Likes on VK video", "callback_data": "/earn_vk_video_like"}],
+                [{"text": "Back", "callback_data": "/menu"}]
             ]
         };
-    bot.editMessageReplyMarkup(menu,{ chat_id: user.Id, message_id: user.MenuId });
-}
+        await bot.editMessageReplyMarkup(menu, {chat_id: user.id, message_id: user.menu_id});
+    }
 
-
-
-function sendEarnOperationButton(user, task) {
-        parse_mode = "Markdown";
-        reply_markup = {
+    static async sendEarnOperationButton(user, task) {
+        const parse_mode = "Markdown";
+        const reply_markup = {
             "inline_keyboard": [
-                [{"text":"Go To Photo", "url" : task.Link, "callback_data" :"/goToPhoto(" + task.Id + ")"}],
-                [{"text":"Confirm", "callback_data" :"/goToPhoto(" + task.Id + ")"}],
-                [{"text":"Back", "callback_data" :"/menu"}]
+                [{"text": "Go To Photo", "url": task.url, "callback_data": "/goToPhoto(" + task.taskname + ")"}],
+                [{"text": "Confirm", "callback_data": "/confirm(" + task.taskname + ")"}],
+                [{"text": "Confirm", "callback_data": "/skip(" + task.taskname + ")"}],
+                [{"text": "Back", "callback_data": "/menu"}]
             ]
         };
-    //bot.sendMessage(user.id,"Choose what do you want to do from list below", urlkey);
-    var text = "Choose what do you want to do from list below";
-    bot.editMessageText( text , { chat_id: user.Id, message_id: user.MenuId, reply_markup:reply_markup, parse_mode : parse_mode });
-}
+        //bot.sendMessage(user.id,"Choose what do you want to do from list below", urlkey);
+        const text = "Choose what do you want to do from list below";
+        await bot.editMessageText(text, {
+            chat_id: user.id,
+            message_id: user.menu_id,
+            reply_markup: reply_markup,
+            parse_mode: parse_mode
+        });
+    }
 
-function sendStats(user) {
-    var reply_markup = {
+    static async sendStats(user) {
+        const reply_markup = {
             "inline_keyboard": [
-                [{"text":"Back", "callback_data" :"/menu"}]
+                [{"text": "Back", "callback_data": "/menu"}]
             ]
-    };
-    var accCount = 0;
-    if(typeof user.VkAcc !== 'undefined' && typeof user.VkAcc !== null)
-        accCount = user.VkAcc.length;
-    var statText = "<b>Stats of " + user.Firstname + " " + user.Lastname + " :</b>\n" +
-        "Connected VK accounts: " + accCount + "\n" +
-        "Balance: " + user.Balance + " coins";
-    bot.editMessageText( statText, { chat_id: user.Id, message_id: user.MenuId, reply_markup:reply_markup, parse_mode : "HTML" });
+        };
+        let accCount = 0;
+        if (typeof user.vk_acc !== 'undefined' && typeof user.vk_acc !== null)
+            accCount = user.vk_acc.length;
+        let statText = "<b>Stats of " + user.first_name + " " + user.last_name + " :</b>\n" +
+            "Connected VK accounts: " + accCount + "\n" +
+            "Balance: " + user.balance + " coins";
+        let dta = {
+            chat_id: user.id,
+            message_id: user.menu_id,
+            reply_markup: reply_markup,
+            parse_mode: "HTML"
+        };
+        await bot.editMessageText(statText, {
+            chat_id: user.id,
+            message_id: user.menu_id,
+            reply_markup: reply_markup,
+            parse_mode: "HTML"
+        });
+    }
 }
-
-
-module.exports = {
-    sendMenu : sendMenu,
-    sendNewMenu : sendNewMenu,
-    sendProfilesEditionMenu : sendProfilesEditionMenu,
-    sendTasksMenu:sendTasksMenu,
-    sendCreationTaskMenu : sendCreationTaskMenu,
-    sendEarnMenu : sendEarnMenu,
-    sendEarnOperationButton : sendEarnOperationButton,
-    sendStats: sendStats
-};

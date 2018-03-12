@@ -1,4 +1,5 @@
-import User from "./user";
+import VkPhotoLikeTask from "./VkPhotoLikeTask";
+
 const MongoClient = require('mongodb').MongoClient;
 
 const db_url = 'mongodb://localhost:27017/vklikebot';
@@ -9,15 +10,15 @@ const  cheerio = require('cheerio');
 
 export default class Task{
 
-    // static Create(url, type, required, author_id){
-    //     switch (type)
-    //     {
-    //         case 'vk_photo_like':
-    //             return new VkPhotoLikeTask(url, type, required, author_id);
-    //         default:
-    //             break;
-    //     }
-    // }
+    static Create(url, type, required, author_id){
+        switch (type)
+        {
+            case 'vk_photo_like':
+                return new VkPhotoLikeTask(url, type, required, author_id);
+            default:
+                break;
+        }
+    }
 
     constructor(taskname, type, url, required, remain, cost, author_id){
         this._taskname = taskname;
@@ -37,17 +38,18 @@ export default class Task{
             client = await MongoClient.connect(db_url);
             const db = client.db(db_name);
             const collection = db.collection('tasks');
-            let res = await res.collection.find();
-            for(i=0;i<user.tasks.length; i++){
-                res = await res.collection.find({taskname: {$ne : user.tasks[i].taskname}, type: type});
+            let res = await collection.find();
+            for(let i=0;i<user.tasks.length; i++){
+                res = await res.collection.find({taskname: {$ne : user.tasks[i].taskname}, type: type, status : {$ne : 'done'}});
             }
-            task = Task.fromJSON(res[0]);
+            task = Task.fromJSON(await res.next());
+            return task;
         }
         catch (err){
             console.log('err');
             console.log(err);
+            return false;
         }
-        return task;
     }
 
     static async fromDB(taskname){
@@ -58,13 +60,21 @@ export default class Task{
             const db = client.db(db_name);
             const collection = db.collection('tasks');
             let res = await collection.findOne({taskname: taskname}, { });
+            if(typeof res === 'undefined')
+                throw 'db is empty';
+
             task = Task.fromJSON(res);
+            return task;
         }
         catch (err){
             console.log('err');
             console.log(err);
+            return false;
         }
-        return task;
+    }
+
+    static fromJSON(jsonT){
+        return new Task( jsonT.taskname, jsonT.type, jsonT.url, jsonT.required, jsonT.remain, jsonT.cost, jsonT.author_id);
     }
 
     async saveToDB(){
@@ -85,14 +95,22 @@ export default class Task{
         }
     }
 
-    check(user, url){
+    static async check(user, url){
+
+        console.log('1111111111111');
         return false;
     }
 
-    confirm(user){
-        if(check(this._url, user)){
-            this._remain--;
-            pay(user);
+    async confirm(user){
+        console.log('sssssss');
+        let s = await VkPhotoLikeTask.check(user, this.url);
+        if(s){
+            console.log(this._remain);
+            this._remain = Number(this._remain) - 1;
+            if(this._remain <= this._required)
+                this._status = 'done';
+            this.pay(user);
+            await this.update();
         }
         else{
             return false;
@@ -116,66 +134,37 @@ export default class Task{
         return jsonT;
     }
 
-    static fromJSON(jsonT){
-        return new Task( jsonT.taskname, jsonT.type, jsonT.url, jsonT.required, jsonT.remain, jsonT.cost, jsonT.author_id);
+    async update(){
+        let client;
+        try {
+            let jsonT = this.toJSON();
+            client = await MongoClient.connect(db_url);
+
+            const db = client.db(db_name);
+            db.collection('tasks').update({taskname : this.taskname}, this.toJSON());
+        } catch (err) {
+            //console.log('err');
+            //console.log(err.stack);
+        }
+
+        if (client) {
+            client.close();
+        }
     }
 
-    get Taskname(){
+    get taskname(){
         return this._taskname;
     }
 
-    get Type(){
+    get cost(){
+        return this._cost;
+    }
+
+    get type(){
         return this._type;
     }
 
-    get Url(){
+    get url(){
         return this._url;
     }
 }
-
-
-
-class VkPhotoLikeTask extends Task{
-
-    constructor(url, required, author_id){
-        let taskname = VkPhotoLikeTask.getUrlData(url)[1]+ '(' + type +')';
-        const cost = 1;
-        super(taskname, 'vk_photo_like_task', url, required, required, cost, author_id);
-    }
-
-    async check(user, url){
-        let likersLink = VkPhotoLikeTask.getLikersLink(url);
-        let result = false;
-        try {
-
-            let respHtml = await  request(likersLink);
-            let $ = cheerio.load(respHtml);
-            let likers = ($('a.inline_item')).toArray();
-
-            result = likers.some((el)=>{
-                return el.attribs.href.slice(1) === url.vk_acc.id;
-            });
-        }
-        catch (err){
-            console.log('err');
-            console.log(err.stack);
-        }
-        return result;
-    }
-
-    static getLikersLink(url){
-        urldata = Task.getUrlData(url);
-        let likersUrl = "https://m.vk.com/like?act=members&object=" + urldata[1] + "&from=" + urldata[1] + "?list=" + urldata[2];
-        return likersUrl;
-    }
-
-    static getUrlData(url){
-        url = decode(url);
-        const pattern = "((photo[^\/]+)_[^\/]+)";
-        let reg = new RegExp(pattern, 'g');
-        let urldata = reg.exec(url);
-        return urldata;
-    }
-
-}
-

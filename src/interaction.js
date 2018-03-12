@@ -1,22 +1,18 @@
 let request = require('request');
 let cheerio = require('cheerio');
-let menu = require('./nmenu');
+import nMenu from './nmenu';
 //let work = require('work.js');
 //let task = require('task.js');
-
-import task from './task';
 import bot from './TeleBot';
 import User from './user';
-
+import Task from './task';
 
 
 ////////////////////////////////////////TASK/////////////////////////////////////////////////////////
 bot.onText(/\/start/, async function (msg, match) {
 
     let user = await User.getSender(msg);
-    console.log("new user:" + user.ExistInDB);
     if(!user.ExistInDB){
-        console.log('dsdsdssssssssssssssssssssssssssssssss');
         await user.saveToDB();
         var greeting = "Hello! This bot will help you easily and reliably exchange your " +
                 "likes with our other users. To connect your account, click the appropriate button.";
@@ -26,48 +22,50 @@ bot.onText(/\/start/, async function (msg, match) {
 
 bot.onText(/\/menu/, async function (msg, match) {
     let user = await User.getSender(msg);
-    menu.sendNewMenu(user);
+    nMenu.sendNewMenu(user);
 });
 
-bot.on('callback_query', function (msg) {
-    /*var user = dataManage.getUser(msg.from.id);
-    var patt = /goToPhoto\((.+)\)/g;
+bot.on('callback_query', async function (msg) {
+    let user = await User.getSender(msg);
+    let patt = /goToPhoto\((.+)\)/g;
+    console.log(msg.data);
     if(patt.test(msg.data)){
-        console.log(msg.data);
+        /*console.log(msg.data);
         var mat = patt.exec(msg.data);
         var taskName = mat[1];
         user.tasks.push(taskName);
         dataManage.changeUser(user);
         dataManage.setStatus(user, 'task_creation(vk_photo_like)');
-        work.getVkLikeTask(user);
+        work.getVkLikeTask(user);*/
     }
     switch (msg.data){
         case '/stats':
-            menu.sendStats(user);
+            console.log('ssssss');
+            nMenu.sendStats(user);
             break;
         case '/profiles':
-            menu.sendProfilesEditionMenu(user);
+            nMenu.sendProfilesEditionMenu(user);
             break;
         case '/earn':
-            menu.sendEarnMenu(user);
+            nMenu.sendEarnMenu(user);
             //dataManage.setStatus(user, 'earning');
             //bot.sendMessage(msg.message.chat.id, "Send me a link to the photo for a wrapping of likes");
             break;
         case '/tasks':
-            menu.sendTasksMenu(user);
+            nMenu.sendTasksMenu(user);
             //earn(msg);
             break;
-        case '/createTask':
-        //dataManage.setStatus(user, 'task_creation(vk_photo_like)');
+        case '/createTask(vk_photo_like)':
+            bot.sendMessage(user.id, 'send the link to the photo');
+            user.status = 'task_creation(vk_photo_like)[link]';
         case '/vk_photo_like':
-            dataManage.setStatus(user, 'task_creation(vk_photo_like)');
-            bot.sendMessage(msg.message.chat.id, "Send me a link to the photo for a wrapping of likes");
+            /*dataManage.setStatus(user, 'task_creation(vk_photo_like)');
+            bot.sendMessage(msg.message.chat.id, "Send me a link to the photo for a wrapping of likes");*/
             break;
         case '/addVkAcc':
             var key = createKey(30);
             user.status = 'vk_acc_addition';
             user.key = key;
-            dataManage.changeUser(user);
             var urlkey = {
                 parse_mode:"Markdown",
                 reply_markup: {
@@ -76,76 +74,89 @@ bot.on('callback_query', function (msg) {
                     ]
                 }};
             bot.sendMessage(msg.message.chat.id, "Indicate in the status of your VK page this key: `" +
-                key + "` (press to copy) and AFTER send me its ID", urlkey/*, {parse_mode:"Markdown"}*//*);
+                key + "` (press to copy) and AFTER send me its ID", urlkey, {parse_mode:"Markdown"});
             break;
         case '/removeVkAcc':
             break;
         case '/menu':
-            menu.sendMenu(user);
+            nMenu.sendMenu(user);
             break;
 
         case '/earn_vk_photo_like':
-            dataManage.setStatus(user, 'earning(vk_photo_like)');
-            work.getVkLikeTask(user);
-            //bot.sendMessage(msg.message.chat.id, "Send me a link to the photo for a wrapping of likes");
+            let task = await Task.GetTaskForUser(user, 'vk_photo_like_task');
+            console.log(task);
+            if(task) {
+                nMenu.sendEarnOperationButton(user, task);
+            }
+            else {
+                bot.sendMessage(user.id, "There are no this type tasks for you");//////////////////////////////////////
+            }
             break;
-
+        default:
+            let taskname = (/\/confirm\((.*)\)/g).exec(msg.data)[1];
+            if(taskname){
+                let text = "";
+                let task = await user.confirmTask(taskname);
+                console.log('sssssss');
+                console.log(task);
+                if(task){
+                    text = "Success, you will get " + task._cost + " coins";
+                }
+                else{
+                    text = "Failure";
+                }
+                bot.sendMessage(user.id, text);
+                user.status = 'free';
+            }
     }
-    bot.answerCallbackQuery(msg.id, "", true);*/
+    bot.answerCallbackQuery(msg.id, "", true);
 });
 
+bot.onText(/\/confirm\((.*)\)/, async function (msg, match) {
+    let user = await User.getSender(msg);
+    await user.confirmTask(match[1]);
+});
 
-function getSenderID(msg){
-    /*if(dataManage.isUserExist(msg.from.id)){
-        return msg.from.id;
-    }
-    else {
-        return false;
-    }*/
-}
+bot.onText(/\/skip\((.*)\)/, async function (msg, match) {
+    let user = await User.getSender(msg);
+    await user.skipTask(match[1]);
+});
 
-
-
-bot.onText(/(.*)/, function (msg, match) {
-    /*user = dataManage.getUser(msg.from.id);
+bot.onText(/(.*)/, async function (msg, match) {
+    let user = await User.getSender(msg);
+    nMenu.deleteMenu(user);
     console.log(user.status);
     switch (user.status){
-        //case 'created':
-        //dataManage.setStatus(user, 'free');
-        //    break;
         case 'vk_acc_addition':
-            addVkAcc(msg, match[1]);
-            console.log(match[1]);
-            dataManage.setStatus(user, 'free');
+            user.addVkAcc(match[1]);
+            user.status = 'free';
             break;
         case 'vk_acc_removal':
-            removeVkAcc(msg, match[1]);
-            dataManage.setStatus(user, 'free');
             break;
-        case 'task_creation(vk_photo_like)':
-            dataManage.setLastTask(user, match[1]);
-            dataManage.setStatus(user, 'task_param(vk_photo_like_count)');
+        case 'task_creation(vk_photo_like)[link]':
+            user.status = 'task_creation(vk_photo_like{' + match[1] + '})[required]';
             bot.sendMessage(msg.chat.id, "How many likes do you want to wind?");
             break;
-        case 'task_param(vk_photo_like_count)':
-            var likesCount = (/(\d*)/g).exec(match)[1];
-            console.log(likesCount);
-            if(likesCount!==null && typeof likesCount !== 'undefined'){
-                console.log(user.balance);
-                if(Number(likesCount) <= Number(user.balance)){
-                    ///....
-                    task.addTaskPhotoLike(user, likesCount);
+        default:
+            let link = (/task_creation\(vk_photo_like\{(.*)\}\)\[required\]/g).exec(user.status)[1];
+            if(link){
+                let required = (/(\d*)/g).exec(match)[1];
+                if(required){
+                    console.log(user.balance);
+                    if(Number(required) <= Number(user.balance)){
+                        ///....
+                        user.createVkPhotoLikeTask(link,match[1]);
+                        bot.sendMessage(msg.chat.id, "ok, " + required);
+                    }
+                    else
+                        bot.sendMessage(msg.chat.id, "Too low a balance for this operation");
 
-                    bot.sendMessage(msg.chat.id, "ok, " + likesCount);
                 }
-                else
-                    bot.sendMessage(msg.chat.id, "Too low a balance for this operation");
+                user.status = 'free';
             }
-            dataManage.setStatus(user, 'free');
-            //removeVkAcc(msg, match[1])
-            break;
+
     }
-*/
+
     //dataManage.setStatus(user, 'free');
 });
 
@@ -166,99 +177,10 @@ bot.onText(/\/cltask/, function (msg, match) {
     //dataManage.setStatus(user, 'free');*/
 });
 
-function addVkAcc(msg, vk_url) {
-    /*var user_id = getSenderID(msg);
-    if(user_id){
-        var user = dataManage.getUser(user_id);
-        request(vk_url, function(err, resp, html) {
-            if (!err){
-                $ = cheerio.load(html);
-                var text = "";
-                var vk_username = (/vk\.com\/([a-zA-Z0-9]*)/g).exec(vk_url)[1].toString();
-
-                ////vk acc exist
-                var exist = false;
-                for(var i = 0; i < user.vk_accs.length; i++){
-                    if(user.vk_accs[i].vk_username === vk_username){
-                        exist = true;
-                        break;
-                    }
-                    console.log(user.vk_accs[i].vk_username + " , " + vk_username);
-                    console.log(exist);
-                }
-                if(exist){
-                    text = "Vk acc already connected";
-                }
-                else
-                {
-                    var userStatus = $('div.pp_status').html();
-                    if(user.key === userStatus) {
-                        text = "Success";
-                        var vk_acc = {
-                            'vk_username': vk_username
-                        }
-                        user.vk_accs.push(vk_acc);
-                        console.log(user);
-                    }
-                    else
-                    {
-                        text = "Failure, status on thee page is " + userStatus;
-                    }
-                }
-                dataManage.setStatus(user, 'free');
-                bot.sendMessage(msg.chat.id, text);
-            }
-        });
-    }*/
-}
-
-function removeVkAcc(msg, vk_url) {
-    /*var user_id = getSenderID(msg);
-    if(user_id){
-        var user = dataManage.getUser(user_id);
-        request(vk_url, function(err, resp, html) {
-            if (!err){
-                $ = cheerio.load(html);
-                var text = "";
-                var vk_username = (/vk\.com\/([a-zA-Z0-9]*)/g).exec(vk_url)[1].toString();
-
-                ////vk acc exist
-                var exist = false;
-                for(var i = 0; i < user.vk_accs.length; i++){
-                    if(user.vk_accs[i].vk_username === vk_username){
-                        exist = true;
-                        break;
-                    }
-                    console.log(user.vk_accs[i].vk_username + " , " + vk_username);
-                    console.log(exist);
-                }
-                if(exist && user.key === $('div.pp_status').html()){
-                    text = "Success";
-                    var vk_acc = {
-                        'vk_username' : vk_username
-                    }/////////////////////////доделать удаление!!!!!!!!!!!!!!!!!!//////////////////////////
-                    user.vk_accs.push(vk_acc);
-                    console.log(user);
-                }
-                else
-                    text = "Failure";
-                dataManage.setStatus(user, 'free');
-                bot.sendMessage(msg.chat.id, text);
-            }
-        });
-    }*/
-}
-
-
-function  register(msg) {
-    /*var NewUser = dataManage.CreateUser(msg);
-    dataManage.addUser(NewUser);*/
-}
-
 function createKey (n){
-    /*var s ='';
+    var s ='';
     while(s.length < n)
         s += String.fromCharCode(Math.random() *1106).replace(/[^a-zA-Z]|_/g,'');
-    return s;*/
+    return s;
 }
 
