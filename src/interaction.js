@@ -48,20 +48,13 @@ bot.on('callback_query', async function (msg) {
             break;
         case '/earn':
             nMenu.sendEarnMenu(user);
-            //dataManage.setStatus(user, 'earning');
-            //bot.sendMessage(msg.message.chat.id, "Send me a link to the photo for a wrapping of likes");
             break;
         case '/tasks':
             nMenu.sendTasksMenu(user);
-            //earn(msg);
             break;
         case '/createTask(vk_photo_like)':
             bot.sendMessage(user.id, 'send the link to the photo');
             user.status = 'task_creation(vk_photo_like)[link]';
-        case '/vk_photo_like':
-            /*dataManage.setStatus(user, 'task_creation(vk_photo_like)');
-            bot.sendMessage(msg.message.chat.id, "Send me a link to the photo for a wrapping of likes");*/
-            break;
         case '/addVkAcc':
             var key = createKey(30);
             user.status = 'vk_acc_addition';
@@ -81,8 +74,7 @@ bot.on('callback_query', async function (msg) {
         case '/menu':
             nMenu.sendMenu(user);
             break;
-
-        case '/earn_vk_photo_like':
+        case '/vk_photo_like_task':
             let task = await Task.GetTaskForUser(user, 'vk_photo_like_task');
             console.log(task);
             if(task) {
@@ -93,21 +85,22 @@ bot.on('callback_query', async function (msg) {
             }
             break;
         default:
+        try{
             let taskname = (/\/confirm\((.*)\)/g).exec(msg.data)[1];
-            if(taskname){
-                let text = "";
-                let task = await user.confirmTask(taskname);
-                console.log('sssssss');
-                console.log(task);
-                if(task){
-                    text = "Success, you will get " + task._cost + " coins";
-                }
-                else{
-                    text = "Failure";
-                }
-                bot.sendMessage(user.id, text);
-                user.status = 'free';
+            let text = "";
+            let task = await user.confirmTask(taskname);
+            if(task){
+                text = "Success, you will get " + task._cost + " coins";
             }
+            else{
+                text = "Failure";
+            }
+            bot.sendMessage(user.id, text);
+            user.status = 'free';
+            nMenu.sendNextTaskMenu(task.type);
+        }catch(err){
+
+        }
     }
     bot.answerCallbackQuery(msg.id, "", true);
 });
@@ -128,8 +121,14 @@ bot.onText(/(.*)/, async function (msg, match) {
     console.log(user.status);
     switch (user.status){
         case 'vk_acc_addition':
-            user.addVkAcc(match[1]);
+            let messageText = '';
+            if(user.addVkAcc(match[1]))
+                text = 'Addition success';
+            else
+                text = 'Wrong vk acc link. There must be something such as \'vk.com/id123456789\'';
             user.status = 'free';
+            bot.sendMessage(user.id, text);
+            nMenu.sendAccsEditionMenu(user);
             break;
         case 'vk_acc_removal':
             break;
@@ -138,34 +137,34 @@ bot.onText(/(.*)/, async function (msg, match) {
             bot.sendMessage(msg.chat.id, "How many likes do you want to wind?");
             break;
         default:
-            let link = (/task_creation\(vk_photo_like\{(.*)\}\)\[required\]/g).exec(user.status)[1];
-            if(link){
-                let required = (/(\d*)/g).exec(match)[1];
-                if(required){
-                    console.log(user.balance);
-                    if(Number(required) <= Number(user.balance)){
-                        ///....
-                        user.createVkPhotoLikeTask(link,match[1]);
-                        bot.sendMessage(msg.chat.id, "ok, " + required);
+            try{
+                let link = (/task_creation\(vk_photo_like\{(.*)\}\)\[required\]/g).exec(user.status)[1];
+                try{let required = (/(\d*)/g).exec(match)[1];
+                    if(required){
+                        let text = '';
+                        console.log(user.balance);
+                        if(Number(required) <= Number(user.balance)){
+                            user.createVkPhotoLikeTask(link,match[1]);
+                            text = "ok, " + required;
+                        }
+                        else
+                            text = "Too low a balance for this operation";
+                        bot.sendMessage(msg.chat.id, text);
+                        nMenu.sendTasksMenu(user);
                     }
-                    else
-                        bot.sendMessage(msg.chat.id, "Too low a balance for this operation");
-
+                }catch(err){
+                    bot.sendMessage(user.id, "Wrong number!");
                 }
-                user.status = 'free';
             }
-
+            catch(err){
+                console.log('err');
+                console.log(err.stack);
+            }
+            user.status = 'free';
+            break;
+        
     }
 
-    //dataManage.setStatus(user, 'free');
-});
-
-bot.onText(/\/balance\((\d+)\)/, function (msg, match) {
-    /*user = dataManage.getUser(msg.from.id);
-    console.log(match[1]);
-    dataManage.setBalance(user, match[1]);
-
-    //dataManage.setStatus(user, 'free');*/
 });
 
 bot.onText(/\/cltask/, function (msg, match) {

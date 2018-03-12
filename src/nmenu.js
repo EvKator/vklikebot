@@ -2,7 +2,7 @@ import bot from './TeleBot';
 
 export default class nMenu {
 
-    static sendNewMenu(user) {
+    static async sendMenu(user) {
         const menu = {
             reply_markup: {
                 "inline_keyboard": [
@@ -13,30 +13,18 @@ export default class nMenu {
                 ]
             }
         };
+        await nMenu.deleteMenu(user);
         bot.sendMessage(user.id, "Choose what do you want to do from list below", menu).then(function (msg) {
-            nMenu.deleteMenu(user);
+            
             user.menu_id = msg.message_id;
         });
-    }
-
-    static sendMenu(user) {
-        const reply_markup = {
-            "inline_keyboard": [
-                [{"text": "My statistics", "callback_data": "/stats"}],
-                [{"text": "My VK profiles", "callback_data": "/profiles"}],
-                [{"text": "My tasks", "callback_data": "/tasks"}],
-                [{"text": "Earn coins", "callback_data": "/earn"}]
-            ]
-        };
-        let text = "Choose what do you want to do from list below";
-        bot.editMessageText(text, {chat_id: user.id, message_id: user.menu_id, reply_markup: reply_markup});
     }
 
     static async deleteMenu(user){
         await bot.deleteMessage(user.id, user.menu_id);
     }
 
-    static async sendProfilesEditionMenu(user) {
+    static async sendAccsEditionMenu(user) {
         const menu = {
             "inline_keyboard": [
                 [{"text": "Add VK profile", "callback_data": "/addVkAcc"}, {"text": "Remove VK profile", "callback_data": "/removeVkAcc"}],
@@ -76,17 +64,26 @@ export default class nMenu {
         await bot.editMessageReplyMarkup(menu, {chat_id: user.id, message_id: user.menu_id});
     }
 
-    static async sendEarnOperationButton(user, task) {
+    static async sendNextTaskMenu(user, tasktype){
+        const menu = {
+            "inline_keyboard": [
+                [{"text": "Next task", "callback_data": "/"+tasktype}],
+                [{"text": "Back", "callback_data": "/earn"}]
+            ]
+        };
+        await bot.editMessageReplyMarkup(menu, {chat_id: user.id, message_id: user.menu_id});
+    }
+
+    static async sendVkPhotoLikeTaskMenu(user, task) {
         const parse_mode = "Markdown";
         const reply_markup = {
             "inline_keyboard": [
                 [{"text": "Go To Photo", "url": task.url, "callback_data": "/goToPhoto(" + task.taskname + ")"}],
                 [{"text": "Confirm", "callback_data": "/confirm(" + task.taskname + ")"}],
-                [{"text": "Confirm", "callback_data": "/skip(" + task.taskname + ")"}],
+                [{"text": "Skip", "callback_data": "/skip(" + task.taskname + ")"}],
                 [{"text": "Back", "callback_data": "/menu"}]
             ]
         };
-        //bot.sendMessage(user.id,"Choose what do you want to do from list below", urlkey);
         const text = "Choose what do you want to do from list below";
         await bot.editMessageText(text, {
             chat_id: user.id,

@@ -1,0 +1,1 @@
+{"version":3,"sources":["../src/q.js"],"names":["console","log","__dirname"],"mappings":";;AAAAA,QAAQC,GAAR,CAAYC,SAAZ","file":"q.js","sourcesContent":["console.log(__dirname);"]}

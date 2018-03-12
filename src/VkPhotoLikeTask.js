@@ -13,7 +13,6 @@ export default class VkPhotoLikeTask extends Task{
     }
 
     static async check(user, url){
-        console.log('0000000000000000');
         let likersLink = VkPhotoLikeTask.getLikersLink(url);
         let result  = false;
         try {

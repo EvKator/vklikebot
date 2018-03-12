@@ -40,34 +40,48 @@ export default class User{
 
     async confirmTask(taskname){
         try {
+            let taskDone = this.tasks.some(function(task){
+                return task.taskname == taskname;
+            });
+            console.log("TAAAASSKDOOONE:" + taskDone);
+            if(taskDone)
+                throw 'the task is already done';
             let task = await Task.fromDB(taskname);
             if (task) {
-                await task.confirm(this);
-                return task;
+                let confirmed = await task.confirm(this);
+                if(confirmed){
+                    this._tasks.push({
+                        taskname: taskname,
+                        status: 'done'
+                    });
+                    this.update();
+                    return task;
+                }
             }
         }
         catch(err) {
-            return false;
+            return null;
         }
-        return false;
+        return null;
     }
 
     async skipTask(taskname){
         let task = await Task.fromDB(taskname);
-        this._tasks.push({taskname: taskname, status: 'skip'});
+        this._tasks.push({taskname: taskname, status: 'skipped'});
         this.sendMessage("skipping success");
     }
 
     async createVkPhotoLikeTask(url, required){
         let task = new VkPhotoLikeTask(url, required, this.id);
-        console.log(task);
         if(task){
             try {
                 await task.saveToDB();
                 this._balance -= task.cost * required;
             }
             catch (err){
-                throw err;
+                console.log('err');
+                console.log(err.stack);
+                return null;
             }
         }
 
@@ -96,8 +110,6 @@ export default class User{
             let vk_uname = (/vk\.com\/([a-zA-Z0-9]*)/g).exec(vk_link)[1].toString();
             let html = await request(vk_link);
             let $ = cheerio.load(html);
-
-
             let text = "Success";
             let userStatus = $('div.pp_status').html();
             if (this.key === userStatus) {
@@ -109,8 +121,9 @@ export default class User{
             }
             bot.sendMessage(user.id, text);
         }
-    catch(err){
+        catch(err){
             throw err;
+            return null;
         }
 
     }

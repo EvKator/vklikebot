@@ -1,0 +1,1 @@
+{"version":3,"sources":["../src/app.js"],"names":[],"mappings":";;AACA","file":"app.js","sourcesContent":["//var inter = require('./interaction');\r\nimport interaction from './interaction';\r\n//let Task = new VkPhotoLikeTask(url, 2, )\r\n//let liked = Check.hasLiked(url, id);\r\n//console.log(liked);"]}

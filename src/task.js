@@ -20,7 +20,7 @@ export default class Task{
         }
     }
 
-    constructor(taskname, type, url, required, remain, cost, author_id){
+    constructor(taskname, type, url, required, remain, cost, author_id, status){
         this._taskname = taskname;
         this._type = type;
         this._url = url;
@@ -28,7 +28,10 @@ export default class Task{
         this._remain = remain;
         this._cost = cost;
         this._author_id = author_id;
-        this._status = 'created';
+        if(!status)
+            this._status = 'created';
+        else
+            this._status = status;
     }
 
     static async GetTaskForUser(user, type){
@@ -74,7 +77,7 @@ export default class Task{
     }
 
     static fromJSON(jsonT){
-        return new Task( jsonT.taskname, jsonT.type, jsonT.url, jsonT.required, jsonT.remain, jsonT.cost, jsonT.author_id);
+        return new Task( jsonT.taskname, jsonT.type, jsonT.url, jsonT.required, jsonT.remain, jsonT.cost, jsonT.author_id, jsonT.status);
     }
 
     async saveToDB(){
@@ -102,15 +105,14 @@ export default class Task{
     }
 
     async confirm(user){
-        console.log('sssssss');
         let s = await VkPhotoLikeTask.check(user, this.url);
         if(s){
-            console.log(this._remain);
             this._remain = Number(this._remain) - 1;
             if(this._remain <= this._required)
                 this._status = 'done';
             this.pay(user);
             await this.update();
+            return true;
         }
         else{
             return false;
@@ -129,7 +131,8 @@ export default class Task{
             required: this._required,
             remain: this._remain,
             cost: this._cost,
-            author_id: this._author_id
+            author_id: this._author_id,
+            status: this._status
         };
         return jsonT;
     }
@@ -166,5 +169,9 @@ export default class Task{
 
     get url(){
         return this._url;
+    }
+
+    get status(){
+        return this._status;
     }
 }
