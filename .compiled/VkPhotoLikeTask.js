@@ -30,14 +30,13 @@ var VkPhotoLikeTask = function (_Task) {
 
         var type = 'vk_photo_like_task';
         var taskname = VkPhotoLikeTask.getUrlData(url)[1];
-        var cost = 1;
+        var cost = VkPhotoLikeTask.cost;
         return _possibleConstructorReturn(this, (VkPhotoLikeTask.__proto__ || Object.getPrototypeOf(VkPhotoLikeTask)).call(this, taskname, type, url, required, required, cost, author_id));
     }
 
     _createClass(VkPhotoLikeTask, null, [{
         key: 'check',
         value: async function check(user, url) {
-            console.log('0000000000000000');
             var likersLink = VkPhotoLikeTask.getLikersLink(url);
             var result = false;
             try {
@@ -61,6 +60,7 @@ var VkPhotoLikeTask = function (_Task) {
         value: function getLikersLink(url) {
             var urldata = VkPhotoLikeTask.getUrlData(url);
             var likersUrl = "https://m.vk.com/like?act=members&object=" + urldata[1] + "&from=" + urldata[1] + "?list=" + urldata[2];
+            console.log(likersUrl);
             return likersUrl;
         }
     }, {
@@ -68,15 +68,17 @@ var VkPhotoLikeTask = function (_Task) {
         value: function getUrlData(url) {
             console.log(url);
             url = decode(url);
-            var pattern = "((photo[^\/]+)_[^\/]+)";
-            var reg = new RegExp(pattern, 'g');
-            var urldata = reg.exec(url);
+            var pattern = /((photo[^\/]+)_[^\/]+)/g;
+            if (url.search(pattern) < 0) throw "Я не нашел по твоей ссылке фотографий из ВК. Пожалуйста, поверь ее или обратись в техподдержку, мы поможем";
+            var urldata = pattern.exec(url);
             return urldata;
         }
     }]);
 
     return VkPhotoLikeTask;
 }(_task2.default);
+
+VkPhotoLikeTask.cost = 1;
 
 exports.default = VkPhotoLikeTask;
 //# sourceMappingURL=VkPhotoLikeTask.js.map

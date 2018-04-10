@@ -13,16 +13,15 @@ import Task from './task.js';
 import VkAcc from './VkAcc';
 export default class User{
 
-    constructor(id, username, first_name, last_name, status, balance, key, vk_acc, vk_tasks, menu_id){
+    constructor(id, username, first_name, last_name, status, balance, key, vk_acc, menu_id, last_message_id){
         if(!status){
-
             status = 'new_user';
             balance = 0;
             key = '';
             vk_acc = {uname:'',id:''};
-            vk_tasks = [];
             menu_id = '';
             this._existInDB = false;
+            last_message_id = 0;
         }
         else
             this._existInDB = true;
@@ -34,55 +33,63 @@ export default class User{
         this._balance = balance;
         this._key = key;
         this._vk_acc = vk_acc;
-        this._tasks = vk_tasks;
         this._menu_id = menu_id;
+        this._last_message_id = last_message_id;
     }
 
     async confirmTask(taskname){
-        try {
-            let taskDone = this.tasks.some(function(task){
-                return task.taskname == taskname;
-            });
-            console.log("TAAAASSKDOOONE:" + taskDone);
-            if(taskDone)
-                throw 'the task is already done';
-            let task = await Task.fromDB(taskname);
-            if (task) {
-                let confirmed = await task.confirm(this);
-                if(confirmed){
-                    this._tasks.push({
-                        taskname: taskname,
-                        status: 'done'
-                    });
-                    this.update();
-                    return task;
-                }
+        let task = await Task.fromDB(taskname);
+        let taskDone;
+        try{
+            if(task.workers){
+                taskDone = task.workers.some((worker) => {
+                    return worker.user_id == this.id;
+                });
             }
+        }catch(err){
+            throw('Мне кажется, ты не выполнил задание. Если это не так, напиши, пожалуйста, в техподдержу, мы поможем');
         }
-        catch(err) {
-            return null;
+        if(taskDone)
+            throw 'Ты уже выполнял это задание';
+        if (task) {
+            let confirmed = await task.confirm(this);
+            if(!confirmed)
+                throw('Мне кажется, ты не выполнил задание. Если это не так, напиши, пожалуйста, в техподдержу, мы поможем');
         }
-        return null;
+
+        return task;
     }
 
     async skipTask(taskname){
         let task = await Task.fromDB(taskname);
-        this._tasks.push({taskname: taskname, status: 'skipped'});
-        this.sendMessage("skipping success");
+        task.skip(user);
     }
 
     async createVkPhotoLikeTask(url, required){
-        let task = new VkPhotoLikeTask(url, required, this.id);
-        if(task){
-            try {
-                await task.saveToDB();
-                this._balance -= task.cost * required;
-            }
-            catch (err){
-                console.log('err');
-                console.log(err.stack);
-                return null;
-            }
+        required = Number(required);
+        if(isNaN(required))
+            throw("Странное число...Не умею работать с такими");
+
+        let finalCost = required * VkPhotoLikeTask.cost;
+
+        if(typeof(required)!="number"){
+            throw("Странное число...Не умею работать с такими");
+        }
+        else if(finalCost > this.balance)
+            throw("Кажется, финансы не позволяют. На счету " + this.balance + " руб, а нужно " + finalCost);
+        else if(finalCost <= 0)
+            throw("Мы не можем крутить отрицательные и нулевые значения, извини");
+
+        let task = await Task.Create(url, 'vk_photo_like_task', required, this.id);//new VkPhotoLikeTask(url, required, this.id);
+
+        try {
+            await task.saveToDB();
+            this._balance -= task.cost * required;
+        }
+        catch (err){
+            console.log('err');
+            console.log(err.stack);
+            throw("Неведомая ошибка на сервере. Пожалуйста, расскажи об этом техподдержке (последний пункт в главном меню)")
         }
 
     }
@@ -105,27 +112,53 @@ export default class User{
         }
     }
 
-    async addVkAcc(vk_link) {
-        try {
-            let vk_uname = (/vk\.com\/([a-zA-Z0-9]*)/g).exec(vk_link)[1].toString();
+    static async vkAccUsed(uname){
+        let result = true;
+            let client;
+            let user;
+            client = await MongoClient.connect(db_url);
+            const db = client.db(db_name);
+            const collection = db.collection('users');
+            let res = await collection.findOne({'vk_acc.uname':uname});
+            try {
+                user = User.fromJSON(res);
+                result = true;
+            }
+            catch (err){
+                //console.log('err');
+                //console.log(err);
+                result = false;
+            }
+            return result;
+    }
+
+    async delVkAcc(){
+        this._vk_acc.uname = '';
+        this._vk_acc.id = '';
+        this.update();
+    }
+
+    async addVkAcc(vk_link) {///////////////////////////////////////////////////////////////vk acc retrying
+        let vk_uname = (/vk\.com\/([a-zA-Z0-9]*)/g).exec(vk_link)[1].toString();
+
+        let used = await User.vkAccUsed(vk_uname);
+        if(!used){
+            vk_link = 'https://m.vk.com/' + vk_uname;
             let html = await request(vk_link);
             let $ = cheerio.load(html);
-            let text = "Success";
             let userStatus = $('div.pp_status').html();
-            if (this.key === userStatus) {
+            if (this.key == userStatus) {
                 let vkacc = new VkAcc(vk_uname);
                 this._vk_acc = vkacc.toJSON();
             }
-            else {
-                text = "Failure, status on thee page is " + userStatus;
+            else if(userStatus === null){
+                throw "Статус на странице скрыт. Пожалуста, поменяй настройки приватности, чтобы я (неавторизованный пользователь) смог его увидеть.";
             }
-            bot.sendMessage(user.id, text);
+            else {
+                throw "Ошибка, статус на странице сейчас " + userStatus;
+            }
         }
-        catch(err){
-            throw err;
-            return null;
-        }
-
+        else throw "Ошибка, аккаунт уже привязан к другому пользователю";
     }
 
     sendMessage(text){
@@ -133,13 +166,8 @@ export default class User{
     }
 
     async Pay(coins){
-        if(coins>0){
-            this._balance += coins;
-            await this.update();
-        }
-        else {
-            console.log('Error: coins < 0');
-        }
+        this._balance += coins;
+        await this.update();
     }
 
     static async getSender(msg){
@@ -178,7 +206,6 @@ export default class User{
         let client;
         let user;
         try {
-
             client = await MongoClient.connect(db_url);
             const db = client.db(db_name);
             const collection = db.collection('users');
@@ -193,8 +220,9 @@ export default class User{
         return user;
     }
 
-    static fromJSON(uJSON){
-        return new User( uJSON.id, uJSON.username, uJSON.first_name, uJSON.last_name, uJSON.status, uJSON.balance, uJSON.key, uJSON.vk_acc, uJSON.tasks, uJSON.menu_id);
+    static fromJSON(jsonU){
+        return new User( jsonU.id, jsonU.username, jsonU.first_name, jsonU.last_name, jsonU.status,
+             jsonU.balance, jsonU.key, jsonU.vk_acc, jsonU.menu_id, jsonU.last_message_id);
     }
 
     toJSON(){
@@ -210,8 +238,8 @@ export default class User{
                 uname : this.vk_acc.uname,
                 id: this.vk_acc.id
             },
-            tasks : this.tasks,
-            menu_id : this.menu_id
+            menu_id : this.menu_id,
+            last_message_id : this.last_message_id
         };
         return jsonU;
     }
@@ -263,7 +291,11 @@ export default class User{
     get vk_acc(){
         return this._vk_acc;
     }
-    get tasks(){
-        return this._tasks;
+    get last_message_id(){
+        return this._last_message_id;
+    }
+    set last_message_id(val){
+        this._last_message_id = val;
+        this.update();
     }
 }

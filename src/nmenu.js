@@ -3,119 +3,163 @@ import bot from './TeleBot';
 export default class nMenu {
 
     static async sendMenu(user) {
-        const menu = {
-            reply_markup: {
+        const text = "Чего желаешь, пользователь?";
+        const reply_markup = {
                 "inline_keyboard": [
-                    [{"text": "My statistics", "callback_data": "/stats"}],
-                    [{"text": "My VK profiles", "callback_data": "/profiles"}],
-                    [{"text": "My tasks", "callback_data": "/tasks"}],
-                    [{"text": "Earn coins", "callback_data": "/earn"}]
+                    [{"text": "Статистика", "callback_data": "/stats"}],
+                    [{"text": "Выполнять задания", "callback_data": "/earn"}],
+                    [{"text": "Создать задание", "callback_data": "/createTask"}],
+                    [{"text": "Привязанные аккаунты", "callback_data": "/profiles"}]
                 ]
-            }
-        };
-        await nMenu.deleteMenu(user);
-        bot.sendMessage(user.id, "Choose what do you want to do from list below", menu).then(function (msg) {
-            
-            user.menu_id = msg.message_id;
-        });
-    }
-
-    static async deleteMenu(user){
-        await bot.deleteMessage(user.id, user.menu_id);
+        }
+        await nMenu._sendMessage(user, text, reply_markup);
     }
 
     static async sendAccsEditionMenu(user) {
-        const menu = {
+        let text;
+        let reply_markup;
+        if(!user.vk_acc.uname){
+            text = "Сейчас твой ВК аккаунт не привязан. Хочешь привязать?";
+            reply_markup = {
+                "inline_keyboard": [
+                    [{"text": "Привязать аккаунт", "callback_data": "/addVkAcc"}],
+                    [{"text": "В меню!", "callback_data": "/menu"}]
+                ]
+            };
+        }
+        else{
+            text = "Ты привязал страницу http://vk.com/" + user.vk_acc.uname;
+            reply_markup = {
+                "inline_keyboard": [
+                    [{"text": "Отвязать аккаунт", "callback_data": "/delVkAcc"}],
+                    [{"text": "В меню!", "callback_data": "/menu"}]
+                ]
+            };
+        }
+        await nMenu._sendMessage(user, text, reply_markup);
+    }
+    static async sendVkCreationTaskMenu(user) {
+        const text = "Какое задание хочешь создать?";
+        const reply_markup = {
             "inline_keyboard": [
-                [{"text": "Add VK profile", "callback_data": "/addVkAcc"}, {"text": "Remove VK profile", "callback_data": "/removeVkAcc"}],
-                [{"text": "Back", "callback_data": "/menu"}]
+                [{"text": "Накрутка лайков ВК", "callback_data": "/create_vk_photo_like_task"}],
+                [{"text": "Назад", "callback_data": "/menu"}]
             ]
         };
-        await bot.editMessageReplyMarkup(menu, {chat_id: user.id, message_id: user.menu_id});
+        await nMenu._sendMessage(user,text,reply_markup);
     }
 
-    static async sendTasksMenu(user) {
-        const menu = {
+    static async sendEarnMenu(user, sendNew) {
+        const text = "Какие задания хочешь выполнять?";
+        const reply_markup = {
             "inline_keyboard": [
-                [{"text": "Create task", "callback_data": "/createTask(vk_photo_like)"},{"text": "Delete task", "callback_data": "/deleteTask"}],
-                [{"text": "Back", "callback_data": "/menu"}]
+                [{"text": "Лайки на фото в ВК", "callback_data": "/earn_vk_photo_like_task"}],
+                [{"text": "Назад", "callback_data": "/menu"}]
             ]
         };
-        await bot.editMessageReplyMarkup(menu, {chat_id: user.id, message_id: user.menu_id});
+        await nMenu._sendMessage(user,text,reply_markup);
     }
 
-    static async sendCreationTaskMenu(user) {
-        const menu = {
+    static async sendNextTaskMenu(user, tasktype, text){
+        if(!text)
+            text = "Чего желаешь, человек?";
+        const reply_markup = {
             "inline_keyboard": [
-                [{"text": "Likes on VK photo", "callback_data": "/vk_photo_like"}, {"text": "Likes on video", "callback_data": "/vk_video_like"}],
-                [{"text": "Back", "callback_data": "/menu"}]
+                [{"text": "Следующее задание", "callback_data": "/earn_"+tasktype}],
+                [{"text": "Выйти в меню", "callback_data": "/menu"}]
             ]
         };
-        await bot.editMessageReplyMarkup(menu, {chat_id: user.id, message_id: user.menu_id});
+        await nMenu._sendMessage(user,text,reply_markup);
     }
 
-    static async sendEarnMenu(user) {
-        const menu = {
-            "inline_keyboard": [
-                [{"text": "Likes on VK photo", "callback_data": "/earn_vk_photo_like"}, {"text": "Likes on VK video", "callback_data": "/earn_vk_video_like"}],
-                [{"text": "Back", "callback_data": "/menu"}]
-            ]
-        };
-        await bot.editMessageReplyMarkup(menu, {chat_id: user.id, message_id: user.menu_id});
-    }
-
-    static async sendNextTaskMenu(user, tasktype){
-        const menu = {
-            "inline_keyboard": [
-                [{"text": "Next task", "callback_data": "/"+tasktype}],
-                [{"text": "Back", "callback_data": "/earn"}]
-            ]
-        };
-        await bot.editMessageReplyMarkup(menu, {chat_id: user.id, message_id: user.menu_id});
-    }
-
-    static async sendVkPhotoLikeTaskMenu(user, task) {
+    static async sendEarnVkPhotoLikeTaskMenu(user, task) {
+        const text = "Поставь лайк на [фотографию](" + task.url + ")";
         const parse_mode = "Markdown";
         const reply_markup = {
             "inline_keyboard": [
-                [{"text": "Go To Photo", "url": task.url, "callback_data": "/goToPhoto(" + task.taskname + ")"}],
-                [{"text": "Confirm", "callback_data": "/confirm(" + task.taskname + ")"}],
-                [{"text": "Skip", "callback_data": "/skip(" + task.taskname + ")"}],
-                [{"text": "Back", "callback_data": "/menu"}]
+                [{"text": "Перейти к фотке", "url": task.url, "callback_data": "/goToPhoto(" + task.taskname + ")"}],
+                [{"text": "Я поставил лайк", "callback_data": "/confirm(" + task.taskname + ")"}],
+                [{"text": "Пропустить", "callback_data": "/skip(" + task.taskname + ")"}],
+                [{"text": "В меню!", "callback_data": "/menu"}]
             ]
         };
-        const text = "Choose what do you want to do from list below";
-        await bot.editMessageText(text, {
-            chat_id: user.id,
-            message_id: user.menu_id,
-            reply_markup: reply_markup,
-            parse_mode: parse_mode
-        });
+        await nMenu._sendMessage(user,text,reply_markup, parse_mode);
     }
 
     static async sendStats(user) {
+        const parse_mode = 'HTML';
         const reply_markup = {
             "inline_keyboard": [
-                [{"text": "Back", "callback_data": "/menu"}]
+                [{"text": "В меню!", "callback_data": "/menu"}]
             ]
         };
-        let accCount = 0;
-        if (typeof user.vk_acc !== 'undefined' && typeof user.vk_acc !== null)
-            accCount = user.vk_acc.length;
-        let statText = "<b>Stats of " + user.first_name + " " + user.last_name + " :</b>\n" +
-            "Connected VK accounts: " + accCount + "\n" +
-            "Balance: " + user.balance + " coins";
-        let dta = {
-            chat_id: user.id,
-            message_id: user.menu_id,
-            reply_markup: reply_markup,
-            parse_mode: "HTML"
+        let text = "Баланс: " + user.balance + " руб";
+        await nMenu._sendMessage(user,text,reply_markup, parse_mode);
+    }
+
+    static async sendConfitmVkAccMenu(user){
+        const parse_mode = 'HTML';
+        let text = "Укаже на странице в статусе этот код: <code>" +
+            user.key + "</code> и ПОСЛЕ пришли ссылку на нее";
+        const reply_markup = {
+            "inline_keyboard": [
+                [{"text":"Перейти к ВК", "callback_data" :"/openvk", "url" : "https://vk.com/id0"}],
+                [{"text":"В меню!", "callback_data" :"/menu"}]
+            ]
         };
-        await bot.editMessageText(statText, {
-            chat_id: user.id,
-            message_id: user.menu_id,
-            reply_markup: reply_markup,
-            parse_mode: "HTML"
+        await nMenu._sendMessage(user,text,reply_markup, parse_mode);
+    }
+
+    static async deleteMenu(user){
+        try{
+            bot.deleteMessage(user.id, user.menu_id);
+        }
+        catch(err){}
+    }
+
+    static async _sendMessage(user, text, reply_markup, parse_mode){
+        let sendNew = !(user.last_message_id == user.menu_id);
+        if(sendNew){
+            await nMenu._sendNew(user, text, reply_markup, parse_mode);
+        }
+        else{
+            await nMenu._replaceText(user, text, reply_markup, parse_mode);
+        }
+    }
+
+    static async _replaceMarkup(user, text, reply_markup, parse_mode){
+        await bot.editMessageReplyMarkup(reply_markup, {chat_id: user.id, message_id: user.menu_id});
+    }
+
+    static async _replaceText(user, text, reply_markup, parse_mode){
+        await bot.editMessageText(text, {chat_id: user.id, message_id: user.menu_id, reply_markup: reply_markup, parse_mode: parse_mode});
+    }
+    
+
+    static async _sendNew(user, text, reply_markup, parse_mode){
+        //try{
+            await nMenu.deleteMenu(user);
+        //}
+        //catch(err){}
+        nMenu._sendAndRemember(user, text, reply_markup, parse_mode);
+    }
+
+    static async _sendAndRemember(user, text, reply_markup, parse_mode){
+        await bot.sendMessage(user.id, text, {parse_mode: 'HTML', reply_markup: reply_markup}).then(function (msg) {
+            user.menu_id = msg.message_id;
+            user.last_message_id = msg.message_id;
         });
+    }
+
+    static async sendTextMessage(user, text, reply_markup, parse_mode){
+        reply_markup = {
+            "inline_keyboard": [
+                [{"text": "В меню!", "callback_data": "/menu"}]
+            ]
+        };
+        nMenu._sendNew(user,text,reply_markup);
+        // await bot.sendMessage(user.id, text, {parse_mode: 'HTML', reply_markup: reply_markup}).then(function (msg) {
+        //     user.last_message_id = msg.message_id;
+        // });
     }
 }

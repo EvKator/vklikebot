@@ -36,18 +36,17 @@ var db_name = 'vklikebot';
 //var nmenu = require('./nmenu');
 
 var User = function () {
-    function User(id, username, first_name, last_name, status, balance, key, vk_acc, vk_tasks, menu_id) {
+    function User(id, username, first_name, last_name, status, balance, key, vk_acc, menu_id, last_message_id) {
         _classCallCheck(this, User);
 
         if (!status) {
-
             status = 'new_user';
             balance = 0;
             key = '';
             vk_acc = { uname: '', id: '' };
-            vk_tasks = [];
             menu_id = '';
             this._existInDB = false;
+            last_message_id = 0;
         } else this._existInDB = true;
         this._id = id;
         this._username = username;
@@ -57,43 +56,61 @@ var User = function () {
         this._balance = balance;
         this._key = key;
         this._vk_acc = vk_acc;
-        this._tasks = vk_tasks;
         this._menu_id = menu_id;
+        this._last_message_id = last_message_id;
     }
 
     _createClass(User, [{
         key: 'confirmTask',
         value: async function confirmTask(taskname) {
+            var _this = this;
+
+            var task = await _task2.default.fromDB(taskname);
+            var taskDone = void 0;
             try {
-                var task = await _task2.default.fromDB(taskname);
-                if (task) {
-                    await task.confirm(this);
-                    return task;
+                if (task.workers) {
+                    taskDone = task.workers.some(function (worker) {
+                        return worker.user_id == _this.id;
+                    });
                 }
             } catch (err) {
-                return false;
+                throw 'Мне кажется, ты не выполнил задание. Если это не так, напиши, пожалуйста, в техподдержу, мы поможем';
             }
-            return false;
+            if (taskDone) throw 'Ты уже выполнял это задание';
+            if (task) {
+                var confirmed = await task.confirm(this);
+                if (!confirmed) throw 'Мне кажется, ты не выполнил задание. Если это не так, напиши, пожалуйста, в техподдержу, мы поможем';
+            }
+
+            return task;
         }
     }, {
         key: 'skipTask',
         value: async function skipTask(taskname) {
             var task = await _task2.default.fromDB(taskname);
-            this._tasks.push({ taskname: taskname, status: 'skip' });
-            this.sendMessage("skipping success");
+            task.skip(user);
         }
     }, {
         key: 'createVkPhotoLikeTask',
         value: async function createVkPhotoLikeTask(url, required) {
-            var task = new _VkPhotoLikeTask2.default(url, required, this.id);
-            console.log(task);
-            if (task) {
-                try {
-                    await task.saveToDB();
-                    this._balance -= task.cost * required;
-                } catch (err) {
-                    throw err;
-                }
+            required = Number(required);
+            if (isNaN(required)) throw "Странное число...Не умею работать с такими";
+
+            var finalCost = required * _VkPhotoLikeTask2.default.cost;
+
+            if (typeof required != "number") {
+                throw "Странное число...Не умею работать с такими";
+            } else if (finalCost > this.balance) throw "Кажется, финансы не позволяют. На счету " + this.balance + " руб, а нужно " + finalCost;else if (finalCost <= 0) throw "Мы не можем крутить отрицательные и нулевые значения, извини";
+
+            var task = await _task2.default.Create(url, 'vk_photo_like_task', required, this.id); //new VkPhotoLikeTask(url, required, this.id);
+
+            try {
+                await task.saveToDB();
+                this._balance -= task.cost * required;
+            } catch (err) {
+                console.log('err');
+                console.log(err.stack);
+                throw "Неведомая ошибка на сервере. Пожалуйста, расскажи об этом техподдержке (последний пункт в главном меню)";
             }
         }
     }, {
@@ -116,25 +133,33 @@ var User = function () {
             }
         }
     }, {
+        key: 'delVkAcc',
+        value: async function delVkAcc() {
+            this._vk_acc.uname = '';
+            this._vk_acc.id = '';
+            this.update();
+        }
+    }, {
         key: 'addVkAcc',
         value: async function addVkAcc(vk_link) {
-            try {
-                var vk_uname = /vk\.com\/([a-zA-Z0-9]*)/g.exec(vk_link)[1].toString();
+            ///////////////////////////////////////////////////////////////vk acc retrying
+            var vk_uname = /vk\.com\/([a-zA-Z0-9]*)/g.exec(vk_link)[1].toString();
+
+            var used = await User.vkAccUsed(vk_uname);
+            if (!used) {
+                vk_link = 'https://m.vk.com/' + vk_uname;
                 var html = await request(vk_link);
                 var $ = cheerio.load(html);
-
-                var text = "Success";
                 var userStatus = $('div.pp_status').html();
-                if (this.key === userStatus) {
+                if (this.key == userStatus) {
                     var vkacc = new _VkAcc2.default(vk_uname);
                     this._vk_acc = vkacc.toJSON();
+                } else if (userStatus === null) {
+                    throw "Статус на странице скрыт. Пожалуста, поменяй настройки приватности, чтобы я (неавторизованный пользователь) смог его увидеть.";
                 } else {
-                    text = "Failure, status on thee page is " + userStatus;
+                    throw "Ошибка, статус на странице сейчас " + userStatus;
                 }
-                _TeleBot2.default.sendMessage(user.id, text);
-            } catch (err) {
-                throw err;
-            }
+            } else throw "Ошибка, аккаунт уже привязан к другому пользователю";
         }
     }, {
         key: 'sendMessage',
@@ -144,12 +169,8 @@ var User = function () {
     }, {
         key: 'Pay',
         value: async function Pay(coins) {
-            if (coins > 0) {
-                this._balance += coins;
-                await this.update();
-            } else {
-                console.log('Error: coins < 0');
-            }
+            this._balance += coins;
+            await this.update();
         }
     }, {
         key: 'saveToDB',
@@ -187,8 +208,8 @@ var User = function () {
                     uname: this.vk_acc.uname,
                     id: this.vk_acc.id
                 },
-                tasks: this.tasks,
-                menu_id: this.menu_id
+                menu_id: this.menu_id,
+                last_message_id: this.last_message_id
             };
             return jsonU;
         }
@@ -258,11 +279,35 @@ var User = function () {
             return this._vk_acc;
         }
     }, {
-        key: 'tasks',
+        key: 'last_message_id',
         get: function get() {
-            return this._tasks;
+            return this._last_message_id;
+        },
+        set: function set(val) {
+            this._last_message_id = val;
+            this.update();
         }
     }], [{
+        key: 'vkAccUsed',
+        value: async function vkAccUsed(uname) {
+            var result = true;
+            var client = void 0;
+            var user = void 0;
+            client = await MongoClient.connect(db_url);
+            var db = client.db(db_name);
+            var collection = db.collection('users');
+            var res = await collection.findOne({ 'vk_acc.uname': uname });
+            try {
+                user = User.fromJSON(res);
+                result = true;
+            } catch (err) {
+                //console.log('err');
+                //console.log(err);
+                result = false;
+            }
+            return result;
+        }
+    }, {
         key: 'getSender',
         value: async function getSender(msg) {
             var telegUser = msg.from;
@@ -280,7 +325,6 @@ var User = function () {
             var client = void 0;
             var user = void 0;
             try {
-
                 client = await MongoClient.connect(db_url);
                 var db = client.db(db_name);
                 var collection = db.collection('users');
@@ -295,8 +339,8 @@ var User = function () {
         }
     }, {
         key: 'fromJSON',
-        value: function fromJSON(uJSON) {
-            return new User(uJSON.id, uJSON.username, uJSON.first_name, uJSON.last_name, uJSON.status, uJSON.balance, uJSON.key, uJSON.vk_acc, uJSON.tasks, uJSON.menu_id);
+        value: function fromJSON(jsonU) {
+            return new User(jsonU.id, jsonU.username, jsonU.first_name, jsonU.last_name, jsonU.status, jsonU.balance, jsonU.key, jsonU.vk_acc, jsonU.menu_id, jsonU.last_message_id);
         }
     }]);
 

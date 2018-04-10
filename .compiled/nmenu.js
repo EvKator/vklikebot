@@ -20,101 +20,143 @@ var nMenu = function () {
     }
 
     _createClass(nMenu, null, [{
-        key: "sendNewMenu",
-        value: function sendNewMenu(user) {
-            var menu = {
-                reply_markup: {
-                    "inline_keyboard": [[{ "text": "My statistics", "callback_data": "/stats" }], [{ "text": "My VK profiles", "callback_data": "/profiles" }], [{ "text": "My tasks", "callback_data": "/tasks" }], [{ "text": "Earn coins", "callback_data": "/earn" }]]
-                }
-            };
-            _TeleBot2.default.sendMessage(user.id, "Choose what do you want to do from list below", menu).then(function (msg) {
-                nMenu.deleteMenu(user);
-                user.menu_id = msg.message_id;
-            });
-        }
-    }, {
         key: "sendMenu",
-        value: function sendMenu(user) {
+        value: async function sendMenu(user) {
+            var text = "Чего желаешь, пользователь?";
             var reply_markup = {
-                "inline_keyboard": [[{ "text": "My statistics", "callback_data": "/stats" }], [{ "text": "My VK profiles", "callback_data": "/profiles" }], [{ "text": "My tasks", "callback_data": "/tasks" }], [{ "text": "Earn coins", "callback_data": "/earn" }]]
+                "inline_keyboard": [[{ "text": "Статистика", "callback_data": "/stats" }], [{ "text": "Выполнять задания", "callback_data": "/earn" }], [{ "text": "Создать задание", "callback_data": "/createTask" }], [{ "text": "Привязанные аккаунты", "callback_data": "/profiles" }]]
             };
-            var text = "Choose what do you want to do from list below";
-            _TeleBot2.default.editMessageText(text, { chat_id: user.id, message_id: user.menu_id, reply_markup: reply_markup });
+            await nMenu._sendMessage(user, text, reply_markup);
         }
     }, {
-        key: "deleteMenu",
-        value: async function deleteMenu(user) {
-            await _TeleBot2.default.deleteMessage(user.id, user.menu_id);
+        key: "sendAccsEditionMenu",
+        value: async function sendAccsEditionMenu(user) {
+            var text = void 0;
+            var reply_markup = void 0;
+            if (!user.vk_acc.uname) {
+                text = "Сейчас твой ВК аккаунт не привязан. Хочешь привязать?";
+                reply_markup = {
+                    "inline_keyboard": [[{ "text": "Привязать аккаунт", "callback_data": "/addVkAcc" }], [{ "text": "В меню!", "callback_data": "/menu" }]]
+                };
+            } else {
+                text = "Ты привязал страницу http://vk.com/" + user.vk_acc.uname;
+                reply_markup = {
+                    "inline_keyboard": [[{ "text": "Отвязать аккаунт", "callback_data": "/delVkAcc" }], [{ "text": "В меню!", "callback_data": "/menu" }]]
+                };
+            }
+            await nMenu._sendMessage(user, text, reply_markup);
         }
     }, {
-        key: "sendProfilesEditionMenu",
-        value: async function sendProfilesEditionMenu(user) {
-            var menu = {
-                "inline_keyboard": [[{ "text": "Add VK profile", "callback_data": "/addVkAcc" }, { "text": "Remove VK profile", "callback_data": "/removeVkAcc" }], [{ "text": "Back", "callback_data": "/menu" }]]
+        key: "sendVkCreationTaskMenu",
+        value: async function sendVkCreationTaskMenu(user) {
+            var text = "Какое задание хочешь создать?";
+            var reply_markup = {
+                "inline_keyboard": [[{ "text": "Накрутка лайков ВК", "callback_data": "/create_vk_photo_like_task" }], [{ "text": "Назад", "callback_data": "/menu" }]]
             };
-            await _TeleBot2.default.editMessageReplyMarkup(menu, { chat_id: user.id, message_id: user.menu_id });
-        }
-    }, {
-        key: "sendTasksMenu",
-        value: async function sendTasksMenu(user) {
-            var menu = {
-                "inline_keyboard": [[{ "text": "Create task", "callback_data": "/createTask(vk_photo_like)" }, { "text": "Delete task", "callback_data": "/deleteTask" }], [{ "text": "Back", "callback_data": "/menu" }]]
-            };
-            await _TeleBot2.default.editMessageReplyMarkup(menu, { chat_id: user.id, message_id: user.menu_id });
-        }
-    }, {
-        key: "sendCreationTaskMenu",
-        value: async function sendCreationTaskMenu(user) {
-            var menu = {
-                "inline_keyboard": [[{ "text": "Likes on VK photo", "callback_data": "/vk_photo_like" }, { "text": "Likes on video", "callback_data": "/vk_video_like" }], [{ "text": "Back", "callback_data": "/menu" }]]
-            };
-            await _TeleBot2.default.editMessageReplyMarkup(menu, { chat_id: user.id, message_id: user.menu_id });
+            await nMenu._sendMessage(user, text, reply_markup);
         }
     }, {
         key: "sendEarnMenu",
-        value: async function sendEarnMenu(user) {
-            var menu = {
-                "inline_keyboard": [[{ "text": "Likes on VK photo", "callback_data": "/earn_vk_photo_like" }, { "text": "Likes on VK video", "callback_data": "/earn_vk_video_like" }], [{ "text": "Back", "callback_data": "/menu" }]]
+        value: async function sendEarnMenu(user, sendNew) {
+            var text = "Какие задания хочешь выполнять?";
+            var reply_markup = {
+                "inline_keyboard": [[{ "text": "Лайки на фото в ВК", "callback_data": "/earn_vk_photo_like_task" }], [{ "text": "Назад", "callback_data": "/menu" }]]
             };
-            await _TeleBot2.default.editMessageReplyMarkup(menu, { chat_id: user.id, message_id: user.menu_id });
+            await nMenu._sendMessage(user, text, reply_markup);
         }
     }, {
-        key: "sendEarnOperationButton",
-        value: async function sendEarnOperationButton(user, task) {
+        key: "sendNextTaskMenu",
+        value: async function sendNextTaskMenu(user, tasktype, text) {
+            if (!text) text = "Чего желаешь, человек?";
+            var reply_markup = {
+                "inline_keyboard": [[{ "text": "Следующее задание", "callback_data": "/earn_" + tasktype }], [{ "text": "Выйти в меню", "callback_data": "/menu" }]]
+            };
+            await nMenu._sendMessage(user, text, reply_markup);
+        }
+    }, {
+        key: "sendEarnVkPhotoLikeTaskMenu",
+        value: async function sendEarnVkPhotoLikeTaskMenu(user, task) {
+            var text = "Поставь лайк на [фотографию](" + task.url + ")";
             var parse_mode = "Markdown";
             var reply_markup = {
-                "inline_keyboard": [[{ "text": "Go To Photo", "url": task.url, "callback_data": "/goToPhoto(" + task.taskname + ")" }], [{ "text": "Confirm", "callback_data": "/confirm(" + task.taskname + ")" }], [{ "text": "Confirm", "callback_data": "/skip(" + task.taskname + ")" }], [{ "text": "Back", "callback_data": "/menu" }]]
+                "inline_keyboard": [[{ "text": "Перейти к фотке", "url": task.url, "callback_data": "/goToPhoto(" + task.taskname + ")" }], [{ "text": "Я поставил лайк", "callback_data": "/confirm(" + task.taskname + ")" }], [{ "text": "Пропустить", "callback_data": "/skip(" + task.taskname + ")" }], [{ "text": "В меню!", "callback_data": "/menu" }]]
             };
-            //bot.sendMessage(user.id,"Choose what do you want to do from list below", urlkey);
-            var text = "Choose what do you want to do from list below";
-            await _TeleBot2.default.editMessageText(text, {
-                chat_id: user.id,
-                message_id: user.menu_id,
-                reply_markup: reply_markup,
-                parse_mode: parse_mode
-            });
+            await nMenu._sendMessage(user, text, reply_markup, parse_mode);
         }
     }, {
         key: "sendStats",
         value: async function sendStats(user) {
+            var parse_mode = 'HTML';
             var reply_markup = {
-                "inline_keyboard": [[{ "text": "Back", "callback_data": "/menu" }]]
+                "inline_keyboard": [[{ "text": "В меню!", "callback_data": "/menu" }]]
             };
-            var accCount = 0;
-            if (typeof user.vk_acc !== 'undefined' && typeof user.vk_acc !== null) accCount = user.vk_acc.length;
-            var statText = "<b>Stats of " + user.first_name + " " + user.last_name + " :</b>\n" + "Connected VK accounts: " + accCount + "\n" + "Balance: " + user.balance + " coins";
-            var dta = {
-                chat_id: user.id,
-                message_id: user.menu_id,
-                reply_markup: reply_markup,
-                parse_mode: "HTML"
+            var text = "Баланс: " + user.balance + " руб";
+            await nMenu._sendMessage(user, text, reply_markup, parse_mode);
+        }
+    }, {
+        key: "sendConfitmVkAccMenu",
+        value: async function sendConfitmVkAccMenu(user) {
+            var parse_mode = 'HTML';
+            var text = "Укаже на странице в статусе этот код: <code>" + user.key + "</code> и ПОСЛЕ пришли ссылку на нее";
+            var reply_markup = {
+                "inline_keyboard": [[{ "text": "Перейти к ВК", "callback_data": "/openvk", "url": "https://vk.com/id0" }], [{ "text": "В меню!", "callback_data": "/menu" }]]
             };
-            await _TeleBot2.default.editMessageText(statText, {
-                chat_id: user.id,
-                message_id: user.menu_id,
-                reply_markup: reply_markup,
-                parse_mode: "HTML"
+            await nMenu._sendMessage(user, text, reply_markup, parse_mode);
+        }
+    }, {
+        key: "deleteMenu",
+        value: async function deleteMenu(user) {
+            try {
+                _TeleBot2.default.deleteMessage(user.id, user.menu_id);
+            } catch (err) {}
+        }
+    }, {
+        key: "_sendMessage",
+        value: async function _sendMessage(user, text, reply_markup, parse_mode) {
+            var sendNew = !(user.last_message_id == user.menu_id);
+            if (sendNew) {
+                await nMenu._sendNew(user, text, reply_markup, parse_mode);
+            } else {
+                await nMenu._replaceText(user, text, reply_markup, parse_mode);
+            }
+        }
+    }, {
+        key: "_replaceMarkup",
+        value: async function _replaceMarkup(user, text, reply_markup, parse_mode) {
+            await _TeleBot2.default.editMessageReplyMarkup(reply_markup, { chat_id: user.id, message_id: user.menu_id });
+        }
+    }, {
+        key: "_replaceText",
+        value: async function _replaceText(user, text, reply_markup, parse_mode) {
+            await _TeleBot2.default.editMessageText(text, { chat_id: user.id, message_id: user.menu_id, reply_markup: reply_markup, parse_mode: parse_mode });
+        }
+    }, {
+        key: "_sendNew",
+        value: async function _sendNew(user, text, reply_markup, parse_mode) {
+            //try{
+            await nMenu.deleteMenu(user);
+            //}
+            //catch(err){}
+            nMenu._sendAndRemember(user, text, reply_markup, parse_mode);
+        }
+    }, {
+        key: "_sendAndRemember",
+        value: async function _sendAndRemember(user, text, reply_markup, parse_mode) {
+            await _TeleBot2.default.sendMessage(user.id, text, { parse_mode: 'HTML', reply_markup: reply_markup }).then(function (msg) {
+                user.menu_id = msg.message_id;
+                user.last_message_id = msg.message_id;
             });
+        }
+    }, {
+        key: "sendTextMessage",
+        value: async function sendTextMessage(user, text, reply_markup, parse_mode) {
+            reply_markup = {
+                "inline_keyboard": [[{ "text": "В меню!", "callback_data": "/menu" }]]
+            };
+            nMenu._sendNew(user, text, reply_markup);
+            // await bot.sendMessage(user.id, text, {parse_mode: 'HTML', reply_markup: reply_markup}).then(function (msg) {
+            //     user.last_message_id = msg.message_id;
+            // });
         }
     }]);
 

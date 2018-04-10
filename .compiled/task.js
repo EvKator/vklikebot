@@ -25,17 +25,24 @@ var cheerio = require('cheerio');
 var Task = function () {
     _createClass(Task, null, [{
         key: 'Create',
-        value: function Create(url, type, required, author_id) {
+        value: async function Create(url, type, required, author_id) {
+
+            var nTask = void 0;
             switch (type) {
-                case 'vk_photo_like':
-                    return new _VkPhotoLikeTask2.default(url, type, required, author_id);
+                case 'vk_photo_like_task':
+                    nTask = new _VkPhotoLikeTask2.default(url, required, author_id);
+                    break;
                 default:
                     break;
             }
+
+            if (await Task.TaskExist(nTask.taskname, type)) throw 'Хмм..Кажется, задание уже существует. Я ошибаюсь? Напиши в техподдержку, мы поможем';
+
+            return nTask;
         }
     }]);
 
-    function Task(taskname, type, url, required, remain, cost, author_id) {
+    function Task(taskname, type, url, required, remain, cost, author_id, status, workers) {
         _classCallCheck(this, Task);
 
         this._taskname = taskname;
@@ -45,7 +52,13 @@ var Task = function () {
         this._remain = remain;
         this._cost = cost;
         this._author_id = author_id;
-        this._status = 'created';
+        if (!status) {
+            this._status = 'created';
+            this._workers = new Array();
+        } else {
+            this._status = status;
+            this._workers = workers;
+        }
     }
 
     _createClass(Task, [{
@@ -70,14 +83,19 @@ var Task = function () {
     }, {
         key: 'confirm',
         value: async function confirm(user) {
-            console.log('sssssss');
             var s = await _VkPhotoLikeTask2.default.check(user, this.url);
             if (s) {
-                console.log(this._remain);
                 this._remain = Number(this._remain) - 1;
-                if (this._remain <= this._required) this._status = 'done';
+
+                if (this._remain <= 0) this._status = 'done';
+
                 this.pay(user);
+                this._workers.push({
+                    user_id: user.id,
+                    status: 'checked_once'
+                });
                 await this.update();
+                return true;
             } else {
                 return false;
             }
@@ -97,7 +115,9 @@ var Task = function () {
                 required: this._required,
                 remain: this._remain,
                 cost: this._cost,
-                author_id: this._author_id
+                author_id: this._author_id,
+                status: this._status,
+                workers: this._workers
             };
             return jsonT;
         }
@@ -121,6 +141,11 @@ var Task = function () {
             }
         }
     }, {
+        key: 'workers',
+        get: function get() {
+            return this._workers;
+        }
+    }, {
         key: 'taskname',
         get: function get() {
             return this._taskname;
@@ -140,25 +165,30 @@ var Task = function () {
         get: function get() {
             return this._url;
         }
+    }, {
+        key: 'status',
+        get: function get() {
+            return this._status;
+        }
     }], [{
         key: 'GetTaskForUser',
         value: async function GetTaskForUser(user, type) {
             var client = void 0;
             var task = void 0;
+
+            if (type == 'vk_photo_like_task') if (!user.vk_acc.uname) throw 'Привяжи ВК аккаунт, чтобы выполнять такие задания';
+
             try {
                 client = await MongoClient.connect(db_url);
                 var db = client.db(db_name);
                 var collection = db.collection('tasks');
-                var res = await collection.find();
-                for (var i = 0; i < user.tasks.length; i++) {
-                    res = await res.collection.find({ taskname: { $ne: user.tasks[i].taskname }, type: type, status: { $ne: 'done' } });
-                }
+                var res = await collection.find({ workers: { $not: { $elemMatch: { user_id: user.id } } }, author_id: { $ne: user.id }, type: type, status: { $ne: 'done' } });
                 task = Task.fromJSON((await res.next()));
                 return task;
             } catch (err) {
                 console.log('err');
-                console.log(err);
-                return false;
+                console.log(err.stack);
+                throw 'Извини, таких заданий сейчас нет';
             }
         }
     }, {
@@ -177,14 +207,31 @@ var Task = function () {
                 return task;
             } catch (err) {
                 console.log('err');
-                console.log(err);
+                console.log(err.stack);
+                throw 'Неведомая ошибка на сервере. Пожалуйста, расскажите об этом техподдержке (последний пункт в главном меню)';
+            }
+        }
+    }, {
+        key: 'TaskExist',
+        value: async function TaskExist(taskname, tasktype) {
+            var client = void 0;
+            var task = void 0;
+            try {
+                client = await MongoClient.connect(db_url);
+                var db = client.db(db_name);
+                var collection = db.collection('tasks');
+                var res = await collection.findOne({ taskname: taskname }, { task: tasktype });
+                if (typeof res === 'undefined') throw 'db is empty';
+                task = Task.fromJSON(res);
+                return true;
+            } catch (err) {
                 return false;
             }
         }
     }, {
         key: 'fromJSON',
         value: function fromJSON(jsonT) {
-            return new Task(jsonT.taskname, jsonT.type, jsonT.url, jsonT.required, jsonT.remain, jsonT.cost, jsonT.author_id);
+            return new Task(jsonT.taskname, jsonT.type, jsonT.url, jsonT.required, jsonT.remain, jsonT.cost, jsonT.author_id, jsonT.status, jsonT.workers);
         }
     }, {
         key: 'check',

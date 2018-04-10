@@ -3,12 +3,11 @@ const request = require('request-promise');
 const cheerio = require('cheerio');
 const decode = require('urldecode');
 
-export default class VkPhotoLikeTask extends Task{
-
+class VkPhotoLikeTask extends Task{
     constructor(url, required, author_id){
         const type = 'vk_photo_like_task';
         let taskname = VkPhotoLikeTask.getUrlData(url)[1];
-        const cost = 1;
+        const cost = VkPhotoLikeTask.cost;
         super(taskname, type, url, required, required, cost, author_id);
     }
 
@@ -36,16 +35,24 @@ export default class VkPhotoLikeTask extends Task{
     static getLikersLink(url){
         let urldata = VkPhotoLikeTask.getUrlData(url);
         let likersUrl = "https://m.vk.com/like?act=members&object=" + urldata[1] + "&from=" + urldata[1] + "?list=" + urldata[2];
+        console.log(likersUrl);
         return likersUrl;
     }
 
     static getUrlData(url){
         console.log(url);
         url = decode(url);
-        const pattern = "((photo[^\/]+)_[^\/]+)";
-        let reg = new RegExp(pattern, 'g');
-        let urldata = reg.exec(url);
+        const pattern = /((photo[^\/]+)_[^\/]+)/g;
+        if(url.search(pattern) < 0)
+            throw ("Я не нашел по твоей ссылке фотографий из ВК. Пожалуйста, поверь ее или обратись в техподдержку, мы поможем");
+        let urldata = pattern.exec(url);
         return urldata;
     }
 
+    
+
 }
+
+VkPhotoLikeTask.cost = 1;
+
+export default VkPhotoLikeTask;

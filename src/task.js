@@ -10,17 +10,26 @@ const  cheerio = require('cheerio');
 
 export default class Task{
 
-    static Create(url, type, required, author_id){
+    static async Create(url, type, required, author_id){
+        
+        let nTask;
         switch (type)
         {
-            case 'vk_photo_like':
-                return new VkPhotoLikeTask(url, type, required, author_id);
+            case 'vk_photo_like_task':
+                nTask = new VkPhotoLikeTask(url,  required, author_id);
+                break;
             default:
                 break;
         }
+
+        if(await Task.TaskExist(nTask.taskname, type))
+            throw('Хмм..Кажется, задание уже существует. Я ошибаюсь? Напиши в техподдержку, мы поможем');
+
+        return nTask;
     }
 
-    constructor(taskname, type, url, required, remain, cost, author_id, status){
+    constructor(taskname, type, url, required, remain, cost, author_id, status, workers){
+
         this._taskname = taskname;
         this._type = type;
         this._url = url;
@@ -28,30 +37,36 @@ export default class Task{
         this._remain = remain;
         this._cost = cost;
         this._author_id = author_id;
-        if(!status)
+        if(!status){
             this._status = 'created';
-        else
+            this._workers = new Array();
+        }
+        else{
             this._status = status;
+            this._workers = workers;
+        }
     }
 
     static async GetTaskForUser(user, type){
         let client;
         let task;
+
+        if(type == 'vk_photo_like_task')
+            if(!user.vk_acc.uname)
+                throw('Привяжи ВК аккаунт, чтобы выполнять такие задания');
+
         try {
             client = await MongoClient.connect(db_url);
             const db = client.db(db_name);
             const collection = db.collection('tasks');
-            let res = await collection.find();
-            for(let i=0;i<user.tasks.length; i++){
-                res = await res.collection.find({taskname: {$ne : user.tasks[i].taskname}, type: type, status : {$ne : 'done'}});
-            }
+            let res = await collection.find({workers: {$not: {$elemMatch : {user_id:user.id}}}, author_id:{$ne: user.id}, type: type, status : {$ne : 'done'}});
             task = Task.fromJSON(await res.next());
             return task;
         }
         catch (err){
             console.log('err');
-            console.log(err);
-            return false;
+            console.log(err.stack);
+            throw('Извини, таких заданий сейчас нет');
         }
     }
 
@@ -71,13 +86,31 @@ export default class Task{
         }
         catch (err){
             console.log('err');
-            console.log(err);
+            console.log(err.stack);
+            throw('Неведомая ошибка на сервере. Пожалуйста, расскажите об этом техподдержке (последний пункт в главном меню)');
+        }
+    }
+
+    static async TaskExist(taskname, tasktype){
+        let client;
+        let task;
+        try {
+            client = await MongoClient.connect(db_url);
+            const db = client.db(db_name);
+            const collection = db.collection('tasks');
+            let res = await collection.findOne({taskname: taskname}, {task: tasktype});
+            if(typeof res === 'undefined')
+                throw 'db is empty';
+            task = Task.fromJSON(res);
+            return true;
+        }
+        catch (err){
             return false;
         }
     }
 
     static fromJSON(jsonT){
-        return new Task( jsonT.taskname, jsonT.type, jsonT.url, jsonT.required, jsonT.remain, jsonT.cost, jsonT.author_id, jsonT.status);
+        return new Task( jsonT.taskname, jsonT.type, jsonT.url, jsonT.required, jsonT.remain, jsonT.cost, jsonT.author_id, jsonT.status, jsonT.workers);
     }
 
     async saveToDB(){
@@ -108,9 +141,15 @@ export default class Task{
         let s = await VkPhotoLikeTask.check(user, this.url);
         if(s){
             this._remain = Number(this._remain) - 1;
-            if(this._remain <= this._required)
+
+            if(this._remain <= 0)
                 this._status = 'done';
+
             this.pay(user);
+            this._workers.push({
+                user_id: user.id,
+                status: 'checked_once'
+            });
             await this.update();
             return true;
         }
@@ -118,6 +157,12 @@ export default class Task{
             return false;
         }
     }
+
+    get workers(){
+        return this._workers;
+    }
+
+
 
     pay(user){
         user.Pay(this._cost);
@@ -132,7 +177,8 @@ export default class Task{
             remain: this._remain,
             cost: this._cost,
             author_id: this._author_id,
-            status: this._status
+            status: this._status,
+            workers: this._workers
         };
         return jsonT;
     }
