@@ -16,7 +16,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var MongoClient = require('mongodb').MongoClient;
 
-var db_url = 'mongodb://localhost:27017/vklikebot';
+var db_url = 'mongodb://evkator:isl0952214823bag@ds249355.mlab.com:49355/vklikebot';
 var db_name = 'vklikebot';
 var decode = require('urldecode');
 var request = require('request');

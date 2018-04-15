@@ -2,7 +2,7 @@ import VkPhotoLikeTask from "./VkPhotoLikeTask";
 
 const MongoClient = require('mongodb').MongoClient;
 
-const db_url = 'mongodb://localhost:27017/vklikebot';
+const db_url = 'mongodb://evkator:isl0952214823bag@ds249355.mlab.com:49355/vklikebot';
 const db_name = 'vklikebot';
 const  decode = require('urldecode');
 const  request = require('request');

@@ -1,7 +1,7 @@
 import nMenu from './nmenu';
 import User from './user';
 const MongoClient = require('mongodb').MongoClient;
-const db_url = 'mongodb://localhost:27017/vklikebot';
+const db_url = 'mongodb://evkator:isl0952214823bag@ds249355.mlab.com:49355/vklikebot';
 const db_name = 'vklikebot';
 export default class Admin{
     static async SendToAll(text, parse_mode = 'HTML'){

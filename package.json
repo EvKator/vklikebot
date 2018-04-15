@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "compile": "babel src --out-dir .compiled --source-maps --watch",
-    "start" : "node .compiled/app.js"
+    "start": "node .compiled/app.js"
   },
   "author": "",
   "license": "ISC",
@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.2",
+    "express": "^4.16.3",
     "mongod": "^2.0.0",
     "mongodb-core": "^3.0.5",
     "node-telegram-bot-api": "^0.30.0",
