@@ -1,6 +1,6 @@
 'use strict';
 
-//var inter = require('./interaction');
+var inter = require('./interaction');
 console.log("SSSSSSSSSSSSSSSSSSTTTTTTTTTTTAAAAAAAARRRRRRRRTTTTTTTTTTTTEEEEEEEEEEEEEDDDDDDDDD!!!!!!!");
 
 var express = require('express');
