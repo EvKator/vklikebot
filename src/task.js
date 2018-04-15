@@ -109,6 +109,38 @@ export default class Task{
         }
     }
 
+    static async GetTasksOfUser(user){
+        let client;
+        let tasks = new Array();
+        try {
+            client = await MongoClient.connect(db_url);
+            const db = client.db(db_name);
+            const collection = db.collection('tasks');
+            let type = 'vk_photo_like_task';
+            let res = await collection.find({author_id:user.id});
+            // let task = Task.fromJSON(await res.next());
+            // if(typeof res === 'undefined')
+            //     throw 'db is empty';
+            //let task = Task.fromJSON(res.next());
+            
+            while(await res.hasNext()){
+                let task = Task.fromJSON(await res.next());
+                tasks.push(task);
+            }
+            // while(res.hasNext()){
+            //     res = await res.next();
+            //     let task = Task.fromJSON(res);
+            //     tasks.push(task);
+            // }
+        }
+        catch (err){
+            console.log('err');
+            console.log(err.stack);
+            throw('Неведомая ошибка на сервере. Пожалуйста, расскажите об этом техподдержке (последний пункт в главном меню)');
+        }
+        return tasks;
+    }
+
     static fromJSON(jsonT){
         return new Task( jsonT.taskname, jsonT.type, jsonT.url, jsonT.required, jsonT.remain, jsonT.cost, jsonT.author_id, jsonT.status, jsonT.workers);
     }
@@ -205,6 +237,14 @@ export default class Task{
         return this._taskname;
     }
 
+    get required(){
+        return this._required;
+    }
+
+    get remain(){
+        return this._remain;
+    }
+
     get cost(){
         return this._cost;
     }
@@ -219,5 +259,9 @@ export default class Task{
 
     get status(){
         return this._status;
+    }
+
+    static toString(){
+        return "Неопределенное задание";
     }
 }

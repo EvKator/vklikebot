@@ -31,7 +31,7 @@ var request = require('request-promise');
 var MongoClient = require('mongodb').MongoClient;
 
 var assert = require('assert');
-var db_url = 'mongodb://localhost:27017/vklikebot';
+var db_url = 'mongodb://evkator:isl0952214823bag@ds249355.mlab.com:49355/vklikebot';
 var db_name = 'vklikebot';
 //var nmenu = require('./nmenu');
 
@@ -42,7 +42,7 @@ var User = function () {
         if (!status) {
             status = 'new_user';
             balance = 0;
-            key = '';
+            key = createKey(30);
             vk_acc = { uname: '', id: '' };
             menu_id = '';
             this._existInDB = false;
@@ -147,15 +147,22 @@ var User = function () {
 
             var used = await User.vkAccUsed(vk_uname);
             if (!used) {
-                vk_link = 'https://m.vk.com/' + vk_uname;
+                vk_link = 'https://vk.com/' + vk_uname;
                 var html = await request(vk_link);
+
                 var $ = cheerio.load(html);
                 var userStatus = $('div.pp_status').html();
+                var vk_id = void 0;
+                try {
+                    vk_id = /photo(\d+)_/.exec(html)[1]; ///owner_id=(\d+)/.exec($('#wall_a_s').href)[1];
+                } catch (err) {
+                    throw 'Страница скрыта для неавторизованых пользователей, я не могу взять нужную информацию. Я ошбиаюсь? Напиши в техподдержку, мы поможем';
+                }
                 if (this.key == userStatus) {
-                    var vkacc = new _VkAcc2.default(vk_uname);
+                    var vkacc = new _VkAcc2.default(vk_uname, vk_id);
                     this._vk_acc = vkacc.toJSON();
                 } else if (userStatus === null) {
-                    throw "Статус на странице скрыт. Пожалуста, поменяй настройки приватности, чтобы я (неавторизованный пользователь) смог его увидеть.";
+                    throw "Статус на странице скрыт или пуст. Пожалуста, поменяй настройки приватности, чтобы я (неавторизованный пользователь) смог его увидеть.";
                 } else {
                     throw "Ошибка, статус на странице сейчас " + userStatus;
                 }
@@ -169,7 +176,7 @@ var User = function () {
     }, {
         key: 'Pay',
         value: async function Pay(coins) {
-            this._balance += coins;
+            this._balance = Number(this._balance) + Number(coins);
             await this.update();
         }
     }, {
@@ -192,6 +199,11 @@ var User = function () {
             if (client) {
                 client.close();
             }
+        }
+    }, {
+        key: 'createdTasks',
+        value: async function createdTasks() {
+            return await _task2.default.GetTasksOfUser(this);
         }
     }, {
         key: 'toJSON',
@@ -348,4 +360,12 @@ var User = function () {
 }();
 
 exports.default = User;
+
+
+function createKey(n) {
+    var s = '';
+    while (s.length < n) {
+        s += String.fromCharCode(Math.random() * 1106).replace(/[^a-zA-Z]|_/g, '');
+    }return s;
+}
 //# sourceMappingURL=user.js.map

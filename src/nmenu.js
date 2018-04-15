@@ -1,4 +1,5 @@
 import bot from './TeleBot';
+import VkPhotoLikeTask from './VkPhotoLikeTask';
 
 export default class nMenu {
 
@@ -9,11 +10,15 @@ export default class nMenu {
                     [{"text": "Статистика", "callback_data": "/stats"}],
                     [{"text": "Выполнять задания", "callback_data": "/earn"}],
                     [{"text": "Создать задание", "callback_data": "/createTask"}],
-                    [{"text": "Привязанные аккаунты", "callback_data": "/profiles"}]
+                    [{"text": "Привязать аккаунт", "callback_data": "/profiles"}],
+                    [{"text": "Вывод средств", "callback_data": "/withdrawMoney"}],
+                    [{"text": "Пополнить счет", "callback_data": "/replenishMoney"}],
+                    [{"text": "Помощь", "url": "https://telegram.me/olebysh", "callback_data": "https://telegram.me/olebysh"}]
                 ]
         }
         await nMenu._sendMessage(user, text, reply_markup);
     }
+
 
     static async sendAccsEditionMenu(user) {
         let text;
@@ -54,6 +59,9 @@ export default class nMenu {
         const reply_markup = {
             "inline_keyboard": [
                 [{"text": "Лайки на фото в ВК", "callback_data": "/earn_vk_photo_like_task"}],
+                [{"text": "Подписки в ВК", "callback_data": "/earn_vk_subscribers_task"}],
+                [{"text": "Просмотр постов tg", "callback_data": "/earn_tg_post_view_task"}],
+                [{"text": "Подписки в tg", "callback_data": "/earn_tg_subscribers_task"}],
                 [{"text": "Назад", "callback_data": "/menu"}]
             ]
         };
@@ -87,19 +95,39 @@ export default class nMenu {
     }
 
     static async sendStats(user) {
-        const parse_mode = 'HTML';
+        const parse_mode = 'Markdown';
         const reply_markup = {
             "inline_keyboard": [
                 [{"text": "В меню!", "callback_data": "/menu"}]
             ]
         };
-        let text = "Баланс: " + user.balance + " руб";
+        let text = "Баланс: " + user.balance + " руб" + "\n";
+
+        let tasks = await user.createdTasks();
+        if(tasks.length > 0){
+            text += "Созданные задания:\n\n";
+
+            for(var i = 0; i < tasks.length; i++){
+                switch (tasks[i].type)
+                {
+                    case 'vk_photo_like_task':
+                        text += VkPhotoLikeTask.toString(tasks[i]) + "\n";
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        else{
+            text += "Вы еще не создавали задания";
+        }
+        
         await nMenu._sendMessage(user,text,reply_markup, parse_mode);
     }
 
     static async sendConfitmVkAccMenu(user){
         const parse_mode = 'HTML';
-        let text = "Укаже на странице в статусе этот код: <code>" +
+        let text = "Укажи на странице в статусе этот код: <code>" +
             user.key + "</code> и ПОСЛЕ пришли ссылку на нее";
         const reply_markup = {
             "inline_keyboard": [
@@ -123,7 +151,12 @@ export default class nMenu {
             await nMenu._sendNew(user, text, reply_markup, parse_mode);
         }
         else{
-            await nMenu._replaceText(user, text, reply_markup, parse_mode);
+            try{
+                await nMenu._replaceText(user, text, reply_markup, parse_mode);
+            }
+            catch(err){
+                await nMenu._sendNew(user, text, reply_markup, parse_mode);
+            }
         }
     }
 

@@ -73,12 +73,18 @@ var VkPhotoLikeTask = function (_Task) {
             var urldata = pattern.exec(url);
             return urldata;
         }
+    }, {
+        key: 'toString',
+        value: function toString(task) {
+            var msg = "Задание: " + String(task.required) + " лайков на [фотографию](" + task.url + ") \n" + "лайкнуло: " + String(Number(task.required) - Number(task.remain)) + "\n" + "затрачено: " + String(Number(task.cost) * Number(task.required)) + " руб\n" + "---------";
+            return msg;
+        }
     }]);
 
     return VkPhotoLikeTask;
 }(_task2.default);
 
-VkPhotoLikeTask.cost = 1;
+VkPhotoLikeTask.cost = 0.2;
 
 exports.default = VkPhotoLikeTask;
 //# sourceMappingURL=VkPhotoLikeTask.js.map

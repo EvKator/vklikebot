@@ -151,6 +151,16 @@ var Task = function () {
             return this._taskname;
         }
     }, {
+        key: 'required',
+        get: function get() {
+            return this._required;
+        }
+    }, {
+        key: 'remain',
+        get: function get() {
+            return this._remain;
+        }
+    }, {
         key: 'cost',
         get: function get() {
             return this._cost;
@@ -229,6 +239,38 @@ var Task = function () {
             }
         }
     }, {
+        key: 'GetTasksOfUser',
+        value: async function GetTasksOfUser(user) {
+            var client = void 0;
+            var tasks = new Array();
+            try {
+                client = await MongoClient.connect(db_url);
+                var db = client.db(db_name);
+                var collection = db.collection('tasks');
+                var type = 'vk_photo_like_task';
+                var res = await collection.find({ author_id: user.id });
+                // let task = Task.fromJSON(await res.next());
+                // if(typeof res === 'undefined')
+                //     throw 'db is empty';
+                //let task = Task.fromJSON(res.next());
+
+                while (await res.hasNext()) {
+                    var task = Task.fromJSON((await res.next()));
+                    tasks.push(task);
+                }
+                // while(res.hasNext()){
+                //     res = await res.next();
+                //     let task = Task.fromJSON(res);
+                //     tasks.push(task);
+                // }
+            } catch (err) {
+                console.log('err');
+                console.log(err.stack);
+                throw 'Неведомая ошибка на сервере. Пожалуйста, расскажите об этом техподдержке (последний пункт в главном меню)';
+            }
+            return tasks;
+        }
+    }, {
         key: 'fromJSON',
         value: function fromJSON(jsonT) {
             return new Task(jsonT.taskname, jsonT.type, jsonT.url, jsonT.required, jsonT.remain, jsonT.cost, jsonT.author_id, jsonT.status, jsonT.workers);
@@ -239,6 +281,11 @@ var Task = function () {
 
             console.log('1111111111111');
             return false;
+        }
+    }, {
+        key: 'toString',
+        value: function toString() {
+            return "Неопределенное задание";
         }
     }]);
 

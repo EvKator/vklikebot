@@ -4,6 +4,7 @@ import nMenu from './nmenu';
 import bot from './TeleBot';
 import User from './user';
 import Task from './task';
+import Admin from './admin';
 import { WSAEUSERS } from 'constants';
 
 
@@ -25,7 +26,11 @@ bot.onText(/\/start/, async function (msg, match) {
 
 bot.onText(/(.*)/, async function (msg, match) {
     let user = await User.getSender(msg);
+    //bot.sendMessage(msg.from.id, match[1] );
     try{
+        
+        if(!user.ExistInDB)
+            await user.saveToDB();
         user.last_message_id = msg.message_id;
         switch (user.status){
             case 'vk_acc_addition':
@@ -44,9 +49,9 @@ bot.onText(/(.*)/, async function (msg, match) {
                     await nMenu.sendTextMessage(user, "Молодец, задание создано успешно!");
                     //nMenu.sendMenu(user);
 
-                    user.status = 'free';
                     break;
                 }
+                user.status = 'free';
             }
     }
     catch(err){
@@ -60,20 +65,117 @@ bot.onText(/(.*)/, async function (msg, match) {
 
 bot.onText(/\/menu/, async function (msg, match) {
     let user = await User.getSender(msg);
-
-    if(!user.ExistInDB){
+    if(!user.ExistInDB)
         await user.saveToDB();
-    }
+    user.last_message_id = msg.message_id;
+    nMenu.sendMenu(user);
+});
 
+bot.onText(/\/sendtoall (.*)/, async function (msg, match) {
+    let user = await User.getSender(msg);
+    if(!user.ExistInDB)
+        await user.saveToDB();
+    try{
+        if(user.key == 'Slava_Ukraini!'){
+            await Admin.SendToAll(match[1]);
+            nMenu.sendTextMessage(user, 'Success');
+        }
+    }
+    catch(err){
+        console.log('err');
+        console.log(err.stack);
+        nMenu.sendTextMessage(user, 'Error');
+    }
+    user.last_message_id = msg.message_id;
+});
+
+bot.onText(/\/sendto (\d+) (.*)/, async function (msg, match) {
+    let user = await User.getSender(msg);
+    if(!user.ExistInDB)
+        await user.saveToDB();
+    try{
+        if(user.key == 'Slava_Ukraini!'){
+            let userDestination = await User.fromDB(Number(match[1]));
+            await Admin.SendTo(userDestination, match[2]);
+            nMenu.sendTextMessage(user, 'Success');
+        }
+    }
+    catch(err){
+        console.log('err');
+        console.log(err.stack);
+        nMenu.sendTextMessage(user, 'Error');
+    }
+    user.last_message_id = msg.message_id;
+});
+
+bot.onText(/\/payto (\d+) (\d+)/, async function (msg, match) {
+    let user = await User.getSender(msg);
+    if(!user.ExistInDB)
+        await user.saveToDB();
+    try{
+        if(user.key == 'Slava_Ukraini!'){
+            let userDestination = await User.fromDB(Number(match[1]));
+            await Admin.PayTo(userDestination, match[2]);
+            nMenu.sendTextMessage(user, 'Success');
+        }
+    }
+    catch(err){
+        console.log('err');
+        console.log(err.stack);
+        nMenu.sendTextMessage(user, 'Error');
+    }
+    user.last_message_id = msg.message_id;
+});
+
+bot.onText(/\/paytome (\d+)/, async function (msg, match) {
+    let user = await User.getSender(msg);
+    if(!user.ExistInDB)
+        await user.saveToDB();
+    try{
+        if(user.key == 'Slava_Ukraini!'){
+            await Admin.PayTo(user, match[1]);
+            nMenu.sendTextMessage(user, 'Success');
+        }
+    }
+    catch(err){
+        console.log('err');
+        console.log(err.stack);
+        nMenu.sendTextMessage(user, 'Error');
+    }
+    user.last_message_id = msg.message_id;
+});
+
+bot.onText(/\/checkalltasks/, async function (msg, match) {
+    let user = await User.getSender(msg);
+    if(!user.ExistInDB)
+        await user.saveToDB();
+    try{
+        if(user.key == 'Slava_Ukraini!'){
+            Admin.checkAllTasks();
+        }
+    }
+    catch(err){
+        console.log('err');
+        console.log(err.stack);
+        nMenu.sendTextMessage(user, 'Error');
+    }
     user.last_message_id = msg.message_id;
     nMenu.sendMenu(user);
 });
 
 bot.on('callback_query', async function (msg) {
     let user = await User.getSender(msg);
+    if(!user.ExistInDB)
+        await user.saveToDB();
     try{
         console.log(msg.data);
         switch (msg.data){
+            case '/replenishMoney':
+                throw "Автоматизированная данная функция появится в течение недели. Сейчас для пополнения можете обратиться напрямую в \"Помощь\"";
+                user.status = 'free';
+            case '/withdrawMoney':
+                throw "Вывод меньше 10р запрещен, у тебя " + user.balance + ". Извини, товарищ... Комиссии.. Потрудись еще немного и возвращайся!";
+                user.status = 'free';
             case '/stats':
                 nMenu.sendStats(user);
                 user.status = 'free';
@@ -105,9 +207,7 @@ bot.on('callback_query', async function (msg) {
                 }
                 break;
             case '/addVkAcc':
-                var key = createKey(30);
                 user.status = 'vk_acc_addition';
-                user.key = key;
                 nMenu.sendConfitmVkAccMenu(user);
                 break;
             case '/delVkAcc':
@@ -125,6 +225,11 @@ bot.on('callback_query', async function (msg) {
                 console.log(task);
                 nMenu.sendEarnVkPhotoLikeTaskMenu(user, task);
                 user.status = 'free';
+                break;
+            case '/earn_vk_subscribers_task':
+            case '/earn_tg_post_view_task':
+            case '/earn_tg_subscribers_task':
+                throw('Извини, таких заданий сейчас нет');
                 break;
             default:
                 
@@ -165,10 +270,4 @@ async function vk_acc_addition(user, link){
     //nMenu.sendAccsEditionMenu(user);
 }
 
-function createKey (n){
-    var s ='';
-    while(s.length < n)
-        s += String.fromCharCode(Math.random() * 1106).replace(/[^a-zA-Z]|_/g,'');
-    return s;
-}
 

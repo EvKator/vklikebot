@@ -21,7 +21,7 @@ var VkAcc = function () {
         value: function toJSON() {
             return {
                 uname: this._uname,
-                link: this._link
+                id: this._id
             };
         }
     }, {
@@ -33,12 +33,12 @@ var VkAcc = function () {
             return this._uname;
         }
     }, {
-        key: "link",
-        set: function set(link) {
-            this._link = link;
+        key: "id",
+        set: function set(id) {
+            this._id = id;
         },
         get: function get() {
-            return this._link;
+            return this._id;
         }
     }]);
 

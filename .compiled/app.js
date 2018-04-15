@@ -1,7 +1,7 @@
-'use strict';
+"use strict";
 
 var inter = require('./interaction');
-
+console.log("SSSSSSSSSSSSSSSSSSTTTTTTTTTTTAAAAAAAARRRRRRRRTTTTTTTTTTTTEEEEEEEEEEEEEDDDDDDDDD!!!!!!!");
 //const MongoClient = require('mongodb').MongoClient;
 // let taskname = 'photo432100574_456239018';
 

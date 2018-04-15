@@ -5,7 +5,7 @@ const  request = require('request-promise');
 const MongoClient = require('mongodb').MongoClient;
 import bot from './TeleBot';
 const assert = require('assert');
-const db_url = 'mongodb://localhost:27017/vklikebot';
+const db_url = 'mongodb://evkator:isl0952214823bag@ds249355.mlab.com:49355/vklikebot';
 const db_name = 'vklikebot';
 import Task from './task.js';
 //var nmenu = require('./nmenu');
@@ -17,7 +17,7 @@ export default class User{
         if(!status){
             status = 'new_user';
             balance = 0;
-            key = '';
+            key = createKey(30);
             vk_acc = {uname:'',id:''};
             menu_id = '';
             this._existInDB = false;
@@ -143,16 +143,24 @@ export default class User{
 
         let used = await User.vkAccUsed(vk_uname);
         if(!used){
-            vk_link = 'https://m.vk.com/' + vk_uname;
+            vk_link = 'https://vk.com/' + vk_uname;
             let html = await request(vk_link);
+
             let $ = cheerio.load(html);
             let userStatus = $('div.pp_status').html();
+            let vk_id;
+            try{
+                vk_id = /photo(\d+)_/.exec(html)[1]; ///owner_id=(\d+)/.exec($('#wall_a_s').href)[1];
+            }
+            catch(err){
+                throw 'Страница скрыта для неавторизованых пользователей, я не могу взять нужную информацию. Я ошбиаюсь? Напиши в техподдержку, мы поможем';
+            }
             if (this.key == userStatus) {
-                let vkacc = new VkAcc(vk_uname);
+                let vkacc = new VkAcc(vk_uname, vk_id);
                 this._vk_acc = vkacc.toJSON();
             }
             else if(userStatus === null){
-                throw "Статус на странице скрыт. Пожалуста, поменяй настройки приватности, чтобы я (неавторизованный пользователь) смог его увидеть.";
+                throw "Статус на странице скрыт или пуст. Пожалуста, поменяй настройки приватности, чтобы я (неавторизованный пользователь) смог его увидеть.";
             }
             else {
                 throw "Ошибка, статус на странице сейчас " + userStatus;
@@ -166,7 +174,7 @@ export default class User{
     }
 
     async Pay(coins){
-        this._balance += coins;
+        this._balance = Number(this._balance) + Number(coins);
         await this.update();
     }
 
@@ -218,6 +226,10 @@ export default class User{
             throw err;
         }
         return user;
+    }
+
+    async createdTasks(){
+        return await Task.GetTasksOfUser(this);
     }
 
     static fromJSON(jsonU){
@@ -298,4 +310,11 @@ export default class User{
         this._last_message_id = val;
         this.update();
     }
+}
+
+function createKey (n){
+    var s ='';
+    while(s.length < n)
+        s += String.fromCharCode(Math.random() * 1106).replace(/[^a-zA-Z]|_/g,'');
+    return s;
 }

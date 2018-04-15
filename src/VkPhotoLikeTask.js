@@ -4,6 +4,7 @@ const cheerio = require('cheerio');
 const decode = require('urldecode');
 
 class VkPhotoLikeTask extends Task{
+    
     constructor(url, required, author_id){
         const type = 'vk_photo_like_task';
         let taskname = VkPhotoLikeTask.getUrlData(url)[1];
@@ -49,10 +50,16 @@ class VkPhotoLikeTask extends Task{
         return urldata;
     }
 
-    
+    static toString(task){
+        let msg = "Задание: " + String(task.required) + " лайков на [фотографию](" + task.url + ") \n" +
+            "лайкнуло: " + String(Number(task.required) - Number(task.remain)) + "\n" +
+            "затрачено: " + String(Number(task.cost) * Number(task.required)) + " руб\n" +
+            "---------";
+        return msg;
+    }
 
 }
 
-VkPhotoLikeTask.cost = 1;
+VkPhotoLikeTask.cost = 0.2;
 
 export default VkPhotoLikeTask;

@@ -6,19 +6,20 @@ export default class VkAcc{
     set uname(uname){
         this._uname = uname;
     }
-    set link(link){
-        this._link = link;
+    set id(id){
+        this._id = id;
     }
     get uname(){
         return this._uname;
     }
-    get link(){
-        return this._link;
+    get id(){
+        return this._id;
     }
+    
     toJSON(){
         return {
             uname: this._uname,
-            link: this._link
+            id: this._id
         };
     }
 }

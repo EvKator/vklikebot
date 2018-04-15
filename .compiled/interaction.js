@@ -16,6 +16,10 @@ var _task2 = require('./task');
 
 var _task3 = _interopRequireDefault(_task2);
 
+var _admin = require('./admin');
+
+var _admin2 = _interopRequireDefault(_admin);
+
 var _constants = require('constants');
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -41,7 +45,10 @@ _TeleBot2.default.onText(/\/start/, async function (msg, match) {
 
 _TeleBot2.default.onText(/(.*)/, async function (msg, match) {
     var user = await _user2.default.getSender(msg);
+    //bot.sendMessage(msg.from.id, match[1] );
     try {
+
+        if (!user.ExistInDB) await user.saveToDB();
         user.last_message_id = msg.message_id;
         switch (user.status) {
             case 'vk_acc_addition':
@@ -60,9 +67,9 @@ _TeleBot2.default.onText(/(.*)/, async function (msg, match) {
                     await _nmenu2.default.sendTextMessage(user, "Молодец, задание создано успешно!");
                     //nMenu.sendMenu(user);
 
-                    user.status = 'free';
                     break;
                 }
+                user.status = 'free';
         }
     } catch (err) {
         console.log(err.stack);
@@ -74,20 +81,105 @@ _TeleBot2.default.onText(/(.*)/, async function (msg, match) {
 
 _TeleBot2.default.onText(/\/menu/, async function (msg, match) {
     var user = await _user2.default.getSender(msg);
+    if (!user.ExistInDB) await user.saveToDB();
+    user.last_message_id = msg.message_id;
+    _nmenu2.default.sendMenu(user);
+});
 
-    if (!user.ExistInDB) {
-        await user.saveToDB();
+_TeleBot2.default.onText(/\/sendtoall (.*)/, async function (msg, match) {
+    var user = await _user2.default.getSender(msg);
+    if (!user.ExistInDB) await user.saveToDB();
+    try {
+        if (user.key == 'Slava_Ukraini!') {
+            await _admin2.default.SendToAll(match[1]);
+            _nmenu2.default.sendTextMessage(user, 'Success');
+        }
+    } catch (err) {
+        console.log('err');
+        console.log(err.stack);
+        _nmenu2.default.sendTextMessage(user, 'Error');
     }
+    user.last_message_id = msg.message_id;
+});
 
+_TeleBot2.default.onText(/\/sendto (\d+) (.*)/, async function (msg, match) {
+    var user = await _user2.default.getSender(msg);
+    if (!user.ExistInDB) await user.saveToDB();
+    try {
+        if (user.key == 'Slava_Ukraini!') {
+            var userDestination = await _user2.default.fromDB(Number(match[1]));
+            await _admin2.default.SendTo(userDestination, match[2]);
+            _nmenu2.default.sendTextMessage(user, 'Success');
+        }
+    } catch (err) {
+        console.log('err');
+        console.log(err.stack);
+        _nmenu2.default.sendTextMessage(user, 'Error');
+    }
+    user.last_message_id = msg.message_id;
+});
+
+_TeleBot2.default.onText(/\/payto (\d+) (\d+)/, async function (msg, match) {
+    var user = await _user2.default.getSender(msg);
+    if (!user.ExistInDB) await user.saveToDB();
+    try {
+        if (user.key == 'Slava_Ukraini!') {
+            var userDestination = await _user2.default.fromDB(Number(match[1]));
+            await _admin2.default.PayTo(userDestination, match[2]);
+            _nmenu2.default.sendTextMessage(user, 'Success');
+        }
+    } catch (err) {
+        console.log('err');
+        console.log(err.stack);
+        _nmenu2.default.sendTextMessage(user, 'Error');
+    }
+    user.last_message_id = msg.message_id;
+});
+
+_TeleBot2.default.onText(/\/paytome (\d+)/, async function (msg, match) {
+    var user = await _user2.default.getSender(msg);
+    if (!user.ExistInDB) await user.saveToDB();
+    try {
+        if (user.key == 'Slava_Ukraini!') {
+            await _admin2.default.PayTo(user, match[1]);
+            _nmenu2.default.sendTextMessage(user, 'Success');
+        }
+    } catch (err) {
+        console.log('err');
+        console.log(err.stack);
+        _nmenu2.default.sendTextMessage(user, 'Error');
+    }
+    user.last_message_id = msg.message_id;
+});
+
+_TeleBot2.default.onText(/\/checkalltasks/, async function (msg, match) {
+    var user = await _user2.default.getSender(msg);
+    if (!user.ExistInDB) await user.saveToDB();
+    try {
+        if (user.key == 'Slava_Ukraini!') {
+            _admin2.default.checkAllTasks();
+        }
+    } catch (err) {
+        console.log('err');
+        console.log(err.stack);
+        _nmenu2.default.sendTextMessage(user, 'Error');
+    }
     user.last_message_id = msg.message_id;
     _nmenu2.default.sendMenu(user);
 });
 
 _TeleBot2.default.on('callback_query', async function (msg) {
     var user = await _user2.default.getSender(msg);
+    if (!user.ExistInDB) await user.saveToDB();
     try {
         console.log(msg.data);
         switch (msg.data) {
+            case '/replenishMoney':
+                throw "Автоматизированная данная функция появится в течение недели. Сейчас для пополнения можете обратиться напрямую в \"Помощь\"";
+                user.status = 'free';
+            case '/withdrawMoney':
+                throw "Вывод меньше 10р запрещен, у тебя " + user.balance + ". Извини, товарищ... Комиссии.. Потрудись еще немного и возвращайся!";
+                user.status = 'free';
             case '/stats':
                 _nmenu2.default.sendStats(user);
                 user.status = 'free';
@@ -118,9 +210,7 @@ _TeleBot2.default.on('callback_query', async function (msg) {
                 }
                 break;
             case '/addVkAcc':
-                var key = createKey(30);
                 user.status = 'vk_acc_addition';
-                user.key = key;
                 _nmenu2.default.sendConfitmVkAccMenu(user);
                 break;
             case '/delVkAcc':
@@ -138,6 +228,11 @@ _TeleBot2.default.on('callback_query', async function (msg) {
                 console.log(task);
                 _nmenu2.default.sendEarnVkPhotoLikeTaskMenu(user, task);
                 user.status = 'free';
+                break;
+            case '/earn_vk_subscribers_task':
+            case '/earn_tg_post_view_task':
+            case '/earn_tg_subscribers_task':
+                throw 'Извини, таких заданий сейчас нет';
                 break;
             default:
 
@@ -172,12 +267,5 @@ async function vk_acc_addition(user, link) {
     user.status = 'free';
     await _nmenu2.default.sendTextMessage(user, messageText);
     //nMenu.sendAccsEditionMenu(user);
-}
-
-function createKey(n) {
-    var s = '';
-    while (s.length < n) {
-        s += String.fromCharCode(Math.random() * 1106).replace(/[^a-zA-Z]|_/g, '');
-    }return s;
 }
 //# sourceMappingURL=interaction.js.map
