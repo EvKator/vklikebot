@@ -47,7 +47,8 @@ export default class nMenu {
         const text = "Какое задание хочешь создать?";
         const reply_markup = {
             "inline_keyboard": [
-                [{"text": "Накрутка лайков ВК", "callback_data": "/create_vk_photo_like_task"}],
+                [{"text": "Накрутка лайков фото ВК", "callback_data": "/create_vk_photo_like_task"}],
+                [{"text": "Накрутка лайков поста ВК", "callback_data": "/create_vk_post_like_task"}],
                 [{"text": "Назад", "callback_data": "/menu"}]
             ]
         };
@@ -59,10 +60,11 @@ export default class nMenu {
         const reply_markup = {
             "inline_keyboard": [
                 [{"text": "Лайки на фото в ВК", "callback_data": "/earn_vk_photo_like_task"}],
+                [{"text": "Лайки на фото в ВК", "callback_data": "/earn_vk_post_like_task"}],
                 [{"text": "Подписки в ВК", "callback_data": "/earn_vk_subscribers_task"}],
                 [{"text": "Просмотр постов tg", "callback_data": "/earn_tg_post_view_task"}],
                 [{"text": "Подписки в tg", "callback_data": "/earn_tg_subscribers_task"}],
-                [{"text": "Назад", "callback_data": "/menu"}]
+                [{"text": "В меню!", "callback_data": "/menu"}]
             ]
         };
         await nMenu._sendMessage(user,text,reply_markup);
@@ -86,6 +88,20 @@ export default class nMenu {
         const reply_markup = {
             "inline_keyboard": [
                 [{"text": "Перейти к фотке", "url": task.url, "callback_data": "/goToPhoto(" + task.taskname + ")"}],
+                [{"text": "Я поставил лайк", "callback_data": "/confirm(" + task.taskname + ")"}],
+                [{"text": "Пропустить", "callback_data": "/skip(" + task.taskname + ")"}],
+                [{"text": "В меню!", "callback_data": "/menu"}]
+            ]
+        };
+        await nMenu._sendMessage(user,text,reply_markup, parse_mode);
+    }
+
+    static async sendEarnVkPostLikeTaskMenu(user, task) {
+        const text = "Поставь лайк на [пост](" + task.url + ")";
+        const parse_mode = "Markdown";
+        const reply_markup = {
+            "inline_keyboard": [
+                [{"text": "Перейти к посту", "url": task.url, "callback_data": "/goToPost(" + task.taskname + ")"}],
                 [{"text": "Я поставил лайк", "callback_data": "/confirm(" + task.taskname + ")"}],
                 [{"text": "Пропустить", "callback_data": "/skip(" + task.taskname + ")"}],
                 [{"text": "В меню!", "callback_data": "/menu"}]

@@ -13,7 +13,20 @@ bot.onText(/\/start/, async function (msg, match) {
     let user = await User.getSender(msg);
     if(!user.ExistInDB){
         await user.saveToDB();
-        var greeting = "Привет! Этот бот поможет тебе накрутить лайки в соц.сетях, или заработать, просто лайкая других ";
+        var greeting = "Привет! \n" +
+       " Этот бот поможет тебе накрутить лайки на фотографии, посты в ВК, подписчиков, или заработать на этом.  \n" +
+       " Также есть возможность просматривать посты, подписываться на каналы в телеграм, получая за это оплату.  \n" +
+       " Стоимость одного лайка - 20 коп. \n" +
+       " Каждому пользователю предоставляется при регистрации 1 руб (4 лайка).  \n" +
+       " Далее, чтобы пополнять  \n" +
+     "баланс, следует выполнять задания или пополнить счет через банковскую карту. \n" +
+     " Чтобы выполнять задания, следует привязать аккаунт ВК. \n" +
+     " ВАЖНО: \n" +
+     "1) Аккаунт должен быть открыт для всех в интернете \n" +
+     "2) Должна стоять аватарка \n" +
+     "3) За отписки, снятие лайков после выполнения задания баланс обнуляется. \n" +
+     " \n" +
+     "  За АБСОЛЮТНО ЛЮБОЙ помощью можете обращаться в техподдержку (пункт \"Помощь\" главного меню). Мы - адекватные, общительные люди.";//"Привет! Этот бот поможет тебе накрутить лайки в соц.сетях, или заработать, просто лайкая других ";
         await nMenu.sendTextMessage(user, greeting);
         //nMenu.sendMenu(user);
     }
@@ -39,13 +52,33 @@ bot.onText(/(.*)/, async function (msg, match) {
             case 'create_vk_photo_like_task(link)':
                 user.status = 'create_vk_photo_like_task(required){' + match[1] + '})';
                 await nMenu.sendTextMessage(user, "Сколько лайков хочешь получить?");
+
+
+                break;
+            case 'create_vk_post_like_task(link)':
+            
+                throw "Извини, функционал для этой задачи будет реализован в течение недели";
+                user.status = 'create_vk_post_like_task(required){' + match[1] + '})';
+                await nMenu.sendTextMessage(user, "Сколько лайков хочешь получить?");
                 break;
             default:
-                const query = /create_vk_photo_like_task\(required\)\{(.*)\}/g;
+                const query = /create_vk_photo_like_task\(required\)\{(.*)\}/;
+                const queryPost = /create_vk_post_like_task\(required\)\{(.*)\}/;
                 if(user.status.search(query) >= 0){
-                    const link = query.exec(user.status)[1];
-                    const required = ((/(\d*)/g).exec(match))[1];
+                    let link = query.exec(user.status)[1];
+                    let required = ((/(\d*)/g).exec(match))[1];
                     await user.createVkPhotoLikeTask(link,match[1]);
+                    await Admin.SendToAll("Появилось новое задание!");
+                    //nMenu.sendMenu(user);
+
+                    break;
+                }
+                else if(user.status.search(queryPost) >= 0){
+                    //throw "Извини, функционал для этой задачи будет реализован в течение недели";
+                    let link = user.status.match(queryPost)[1];
+                    let required = ((/(\d*)/g).exec(match))[1];
+                    required = ((/(\d*)/g).exec(match))[1];
+                    await user.createVkPostLikeTask(link,match[1]);
                     await nMenu.sendTextMessage(user, "Молодец, задание создано успешно!");
                     //nMenu.sendMenu(user);
 
@@ -206,6 +239,17 @@ bot.on('callback_query', async function (msg) {
                     //nMenu.sendMenu(user);
                 }
                 break;
+            case '/create_vk_post_like_task':
+                throw "Извини, функционал для этой задачи будет реализован в течение недели";
+                if(user.vk_acc.uname){
+                    await nMenu.sendTextMessage(user, 'Пожалуйста, дай нам ссылку на пост');
+                    user.status = 'create_vk_post_like_task(link)';
+                }
+                else{
+                    await nMenu.sendTextMessage(user, 'Привяжи ВК аккаунт, чтобы выполнять такие задания');
+                    //nMenu.sendMenu(user);
+                }
+                break;
             case '/addVkAcc':
                 user.status = 'vk_acc_addition';
                 nMenu.sendConfitmVkAccMenu(user);
@@ -220,12 +264,22 @@ bot.on('callback_query', async function (msg) {
                 nMenu.sendMenu(user);
                 user.status = 'free';
                 break;
-            case '/earn_vk_photo_like_task':
+            case '/earn_vk_photo_like_task':{
                 let task = await Task.GetTaskForUser(user, 'vk_photo_like_task');
                 console.log(task);
                 nMenu.sendEarnVkPhotoLikeTaskMenu(user, task);
                 user.status = 'free';
                 break;
+            }
+            case '/earn_vk_post_like_task':{
+                
+                throw "Извини, функционал для этой задачи будет реализован в течение недели";
+                let task = await Task.GetTaskForUser(user, 'vk_post_like_task');
+                console.log(task);
+                nMenu.sendEarnVkPostLikeTaskMenu(user, task);
+                user.status = 'free';
+                break;
+            }
             case '/earn_vk_subscribers_task':
             case '/earn_tg_post_view_task':
             case '/earn_tg_subscribers_task':

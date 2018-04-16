@@ -55,7 +55,7 @@ var nMenu = function () {
         value: async function sendVkCreationTaskMenu(user) {
             var text = "Какое задание хочешь создать?";
             var reply_markup = {
-                "inline_keyboard": [[{ "text": "Накрутка лайков ВК", "callback_data": "/create_vk_photo_like_task" }], [{ "text": "Назад", "callback_data": "/menu" }]]
+                "inline_keyboard": [[{ "text": "Накрутка лайков фото ВК", "callback_data": "/create_vk_photo_like_task" }], [{ "text": "Накрутка лайков поста ВК", "callback_data": "/create_vk_post_like_task" }], [{ "text": "Назад", "callback_data": "/menu" }]]
             };
             await nMenu._sendMessage(user, text, reply_markup);
         }
@@ -64,7 +64,7 @@ var nMenu = function () {
         value: async function sendEarnMenu(user, sendNew) {
             var text = "Какие задания хочешь выполнять?";
             var reply_markup = {
-                "inline_keyboard": [[{ "text": "Лайки на фото в ВК", "callback_data": "/earn_vk_photo_like_task" }], [{ "text": "Подписки в ВК", "callback_data": "/earn_vk_subscribers_task" }], [{ "text": "Просмотр постов tg", "callback_data": "/earn_tg_post_view_task" }], [{ "text": "Подписки в tg", "callback_data": "/earn_tg_subscribers_task" }], [{ "text": "Назад", "callback_data": "/menu" }]]
+                "inline_keyboard": [[{ "text": "Лайки на фото в ВК", "callback_data": "/earn_vk_photo_like_task" }], [{ "text": "Лайки на фото в ВК", "callback_data": "/earn_vk_post_like_task" }], [{ "text": "Подписки в ВК", "callback_data": "/earn_vk_subscribers_task" }], [{ "text": "Просмотр постов tg", "callback_data": "/earn_tg_post_view_task" }], [{ "text": "Подписки в tg", "callback_data": "/earn_tg_subscribers_task" }], [{ "text": "В меню!", "callback_data": "/menu" }]]
             };
             await nMenu._sendMessage(user, text, reply_markup);
         }
@@ -84,6 +84,16 @@ var nMenu = function () {
             var parse_mode = "Markdown";
             var reply_markup = {
                 "inline_keyboard": [[{ "text": "Перейти к фотке", "url": task.url, "callback_data": "/goToPhoto(" + task.taskname + ")" }], [{ "text": "Я поставил лайк", "callback_data": "/confirm(" + task.taskname + ")" }], [{ "text": "Пропустить", "callback_data": "/skip(" + task.taskname + ")" }], [{ "text": "В меню!", "callback_data": "/menu" }]]
+            };
+            await nMenu._sendMessage(user, text, reply_markup, parse_mode);
+        }
+    }, {
+        key: 'sendEarnVkPostLikeTaskMenu',
+        value: async function sendEarnVkPostLikeTaskMenu(user, task) {
+            var text = "Поставь лайк на [пост](" + task.url + ")";
+            var parse_mode = "Markdown";
+            var reply_markup = {
+                "inline_keyboard": [[{ "text": "Перейти к посту", "url": task.url, "callback_data": "/goToPost(" + task.taskname + ")" }], [{ "text": "Я поставил лайк", "callback_data": "/confirm(" + task.taskname + ")" }], [{ "text": "Пропустить", "callback_data": "/skip(" + task.taskname + ")" }], [{ "text": "В меню!", "callback_data": "/menu" }]]
             };
             await nMenu._sendMessage(user, text, reply_markup, parse_mode);
         }

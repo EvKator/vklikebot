@@ -12,9 +12,9 @@ var _user = require('./user');
 
 var _user2 = _interopRequireDefault(_user);
 
-var _task2 = require('./task');
+var _task3 = require('./task');
 
-var _task3 = _interopRequireDefault(_task2);
+var _task4 = _interopRequireDefault(_task3);
 
 var _admin = require('./admin');
 
@@ -33,7 +33,7 @@ _TeleBot2.default.onText(/\/start/, async function (msg, match) {
     var user = await _user2.default.getSender(msg);
     if (!user.ExistInDB) {
         await user.saveToDB();
-        var greeting = "Привет! Этот бот поможет тебе накрутить лайки в соц.сетях, или заработать, просто лайкая других ";
+        var greeting = "Привет! \n" + " Этот бот поможет тебе накрутить лайки на фотографии, посты в ВК, подписчиков, или заработать на этом.  \n" + " Также есть возможность просматривать посты, подписываться на каналы в телеграм, получая за это оплату.  \n" + " Стоимость одного лайка - 20 коп. \n" + " Каждому пользователю предоставляется при регистрации 1 руб (4 лайка).  \n" + " Далее, чтобы пополнять  \n" + "баланс, следует выполнять задания или пополнить счет через банковскую карту. \n" + " Чтобы выполнять задания, следует привязать аккаунт ВК. \n" + " ВАЖНО: \n" + "1) Аккаунт должен быть открыт для всех в интернете \n" + "2) Должна стоять аватарка \n" + "3) За отписки, снятие лайков после выполнения задания баланс обнуляется. \n" + " \n" + "  За АБСОЛЮТНО ЛЮБОЙ помощью можете обращаться в техподдержку (пункт \"Помощь\" главного меню). Мы - адекватные, общительные люди."; //"Привет! Этот бот поможет тебе накрутить лайки в соц.сетях, или заработать, просто лайкая других ";
         await _nmenu2.default.sendTextMessage(user, greeting);
         //nMenu.sendMenu(user);
     } else {
@@ -57,13 +57,31 @@ _TeleBot2.default.onText(/(.*)/, async function (msg, match) {
             case 'create_vk_photo_like_task(link)':
                 user.status = 'create_vk_photo_like_task(required){' + match[1] + '})';
                 await _nmenu2.default.sendTextMessage(user, "Сколько лайков хочешь получить?");
+
+                break;
+            case 'create_vk_post_like_task(link)':
+
+                throw "Извини, функционал для этой задачи будет реализован в течение недели";
+                user.status = 'create_vk_post_like_task(required){' + match[1] + '})';
+                await _nmenu2.default.sendTextMessage(user, "Сколько лайков хочешь получить?");
                 break;
             default:
-                var query = /create_vk_photo_like_task\(required\)\{(.*)\}/g;
+                var query = /create_vk_photo_like_task\(required\)\{(.*)\}/;
+                var queryPost = /create_vk_post_like_task\(required\)\{(.*)\}/;
                 if (user.status.search(query) >= 0) {
                     var link = query.exec(user.status)[1];
                     var required = /(\d*)/g.exec(match)[1];
                     await user.createVkPhotoLikeTask(link, match[1]);
+                    await _admin2.default.SendToAll("Появилось новое задание!");
+                    //nMenu.sendMenu(user);
+
+                    break;
+                } else if (user.status.search(queryPost) >= 0) {
+                    //throw "Извини, функционал для этой задачи будет реализован в течение недели";
+                    var _link = user.status.match(queryPost)[1];
+                    var _required = /(\d*)/g.exec(match)[1];
+                    _required = /(\d*)/g.exec(match)[1];
+                    await user.createVkPostLikeTask(_link, match[1]);
                     await _nmenu2.default.sendTextMessage(user, "Молодец, задание создано успешно!");
                     //nMenu.sendMenu(user);
 
@@ -209,6 +227,16 @@ _TeleBot2.default.on('callback_query', async function (msg) {
                     //nMenu.sendMenu(user);
                 }
                 break;
+            case '/create_vk_post_like_task':
+                throw "Извини, функционал для этой задачи будет реализован в течение недели";
+                if (user.vk_acc.uname) {
+                    await _nmenu2.default.sendTextMessage(user, 'Пожалуйста, дай нам ссылку на пост');
+                    user.status = 'create_vk_post_like_task(link)';
+                } else {
+                    await _nmenu2.default.sendTextMessage(user, 'Привяжи ВК аккаунт, чтобы выполнять такие задания');
+                    //nMenu.sendMenu(user);
+                }
+                break;
             case '/addVkAcc':
                 user.status = 'vk_acc_addition';
                 _nmenu2.default.sendConfitmVkAccMenu(user);
@@ -224,11 +252,23 @@ _TeleBot2.default.on('callback_query', async function (msg) {
                 user.status = 'free';
                 break;
             case '/earn_vk_photo_like_task':
-                var task = await _task3.default.GetTaskForUser(user, 'vk_photo_like_task');
-                console.log(task);
-                _nmenu2.default.sendEarnVkPhotoLikeTaskMenu(user, task);
-                user.status = 'free';
-                break;
+                {
+                    var task = await _task4.default.GetTaskForUser(user, 'vk_photo_like_task');
+                    console.log(task);
+                    _nmenu2.default.sendEarnVkPhotoLikeTaskMenu(user, task);
+                    user.status = 'free';
+                    break;
+                }
+            case '/earn_vk_post_like_task':
+                {
+
+                    throw "Извини, функционал для этой задачи будет реализован в течение недели";
+                    var _task = await _task4.default.GetTaskForUser(user, 'vk_post_like_task');
+                    console.log(_task);
+                    _nmenu2.default.sendEarnVkPostLikeTaskMenu(user, _task);
+                    user.status = 'free';
+                    break;
+                }
             case '/earn_vk_subscribers_task':
             case '/earn_tg_post_view_task':
             case '/earn_tg_subscribers_task':
@@ -240,11 +280,11 @@ _TeleBot2.default.on('callback_query', async function (msg) {
 
                 if (msg.data.search(taskname_query) >= 0) {
                     var taskname = taskname_query.exec(msg.data)[1];
-                    var _task = await user.confirmTask(taskname);
-                    var text = "Ты получил " + _task.cost + " руб. Спасибо за помощь!";
+                    var _task2 = await user.confirmTask(taskname);
+                    var text = "Ты получил " + _task2.cost + " руб. Спасибо за помощь!";
 
                     user.status = 'free';
-                    _nmenu2.default.sendNextTaskMenu(user, _task.type, text);
+                    _nmenu2.default.sendNextTaskMenu(user, _task2.type, text);
                 }
                 break;
                 user.status = 'free';

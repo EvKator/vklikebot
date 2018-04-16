@@ -2,7 +2,7 @@ import VkPhotoLikeTask from "./VkPhotoLikeTask";
 
 const MongoClient = require('mongodb').MongoClient;
 
-const db_url = 'mongodb://evkator:isl0952214823bag@ds249355.mlab.com:49355/vklikebot';
+const db_url = 'mongodb://evkator:isl0952214823bag@ds249355.mlab.com:49355/vklikebot';//'mongodb://localhost:27017/vklikebot';
 const db_name = 'vklikebot';
 const  decode = require('urldecode');
 const  request = require('request');
@@ -17,6 +17,9 @@ export default class Task{
         {
             case 'vk_photo_like_task':
                 nTask = new VkPhotoLikeTask(url,  required, author_id);
+                break;
+            case 'vk_post_like_task':
+                nTask = new VkPostLikeTask(url,  required, author_id);
                 break;
             default:
                 break;

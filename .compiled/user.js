@@ -31,7 +31,7 @@ var request = require('request-promise');
 var MongoClient = require('mongodb').MongoClient;
 
 var assert = require('assert');
-var db_url = 'mongodb://evkator:isl0952214823bag@ds249355.mlab.com:49355/vklikebot';
+var db_url = 'mongodb://evkator:isl0952214823bag@ds249355.mlab.com:49355/vklikebot'; //'mongodb://localhost:27017/vklikebot';
 var db_name = 'vklikebot';
 //var nmenu = require('./nmenu');
 
@@ -103,6 +103,29 @@ var User = function () {
             } else if (finalCost > this.balance) throw "Кажется, финансы не позволяют. На счету " + this.balance + " руб, а нужно " + finalCost;else if (finalCost <= 0) throw "Мы не можем крутить отрицательные и нулевые значения, извини";
 
             var task = await _task2.default.Create(url, 'vk_photo_like_task', required, this.id); //new VkPhotoLikeTask(url, required, this.id);
+
+            try {
+                await task.saveToDB();
+                this._balance -= task.cost * required;
+            } catch (err) {
+                console.log('err');
+                console.log(err.stack);
+                throw "Неведомая ошибка на сервере. Пожалуйста, расскажи об этом техподдержке (последний пункт в главном меню)";
+            }
+        }
+    }, {
+        key: 'createVkPostLikeTask',
+        value: async function createVkPostLikeTask(url, required) {
+            required = Number(required);
+            if (isNaN(required)) throw "Странное число...Не умею работать с такими";
+
+            var finalCost = required * _VkPhotoLikeTask2.default.cost;
+
+            if (typeof required != "number") {
+                throw "Странное число...Не умею работать с такими";
+            } else if (finalCost > this.balance) throw "Кажется, финансы не позволяют. На счету " + this.balance + " руб, а нужно " + finalCost;else if (finalCost <= 0) throw "Мы не можем крутить отрицательные и нулевые значения, извини";
+
+            var task = await _task2.default.Create(url, 'vk_post_like_task', required, this.id); //new VkPhotoLikeTask(url, required, this.id);
 
             try {
                 await task.saveToDB();

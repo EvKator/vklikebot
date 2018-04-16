@@ -5,7 +5,7 @@ const  request = require('request-promise');
 const MongoClient = require('mongodb').MongoClient;
 import bot from './TeleBot';
 const assert = require('assert');
-const db_url = 'mongodb://evkator:isl0952214823bag@ds249355.mlab.com:49355/vklikebot';
+const db_url = 'mongodb://evkator:isl0952214823bag@ds249355.mlab.com:49355/vklikebot';//'mongodb://localhost:27017/vklikebot';
 const db_name = 'vklikebot';
 import Task from './task.js';
 //var nmenu = require('./nmenu');
@@ -81,6 +81,35 @@ export default class User{
             throw("Мы не можем крутить отрицательные и нулевые значения, извини");
 
         let task = await Task.Create(url, 'vk_photo_like_task', required, this.id);//new VkPhotoLikeTask(url, required, this.id);
+
+        try {
+            await task.saveToDB();
+            this._balance -= task.cost * required;
+        }
+        catch (err){
+            console.log('err');
+            console.log(err.stack);
+            throw("Неведомая ошибка на сервере. Пожалуйста, расскажи об этом техподдержке (последний пункт в главном меню)")
+        }
+
+    }
+
+    async createVkPostLikeTask(url, required){
+        required = Number(required);
+        if(isNaN(required))
+            throw("Странное число...Не умею работать с такими");
+
+        let finalCost = required * VkPhotoLikeTask.cost;
+
+        if(typeof(required)!="number"){
+            throw("Странное число...Не умею работать с такими");
+        }
+        else if(finalCost > this.balance)
+            throw("Кажется, финансы не позволяют. На счету " + this.balance + " руб, а нужно " + finalCost);
+        else if(finalCost <= 0)
+            throw("Мы не можем крутить отрицательные и нулевые значения, извини");
+
+        let task = await Task.Create(url, 'vk_post_like_task', required, this.id);//new VkPhotoLikeTask(url, required, this.id);
 
         try {
             await task.saveToDB();

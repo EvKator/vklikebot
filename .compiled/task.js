@@ -16,7 +16,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var MongoClient = require('mongodb').MongoClient;
 
-var db_url = 'mongodb://evkator:isl0952214823bag@ds249355.mlab.com:49355/vklikebot';
+var db_url = 'mongodb://evkator:isl0952214823bag@ds249355.mlab.com:49355/vklikebot'; //'mongodb://localhost:27017/vklikebot';
 var db_name = 'vklikebot';
 var decode = require('urldecode');
 var request = require('request');
@@ -31,6 +31,9 @@ var Task = function () {
             switch (type) {
                 case 'vk_photo_like_task':
                     nTask = new _VkPhotoLikeTask2.default(url, required, author_id);
+                    break;
+                case 'vk_post_like_task':
+                    nTask = new VkPostLikeTask(url, required, author_id);
                     break;
                 default:
                     break;
