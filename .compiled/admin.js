@@ -18,10 +18,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var MongoClient = require('mongodb').MongoClient;
-var db_url = 'mongodb://evkator:isl0952214823bag@ds249355.mlab.com:49355/vklikebot'; //'mongodb://localhost:27017/vklikebot';
-var db_name = 'vklikebot';
-
 var Admin = function () {
     function Admin() {
         _classCallCheck(this, Admin);
@@ -34,9 +30,7 @@ var Admin = function () {
 
             //sendTextMessage(user, text, reply_markup, parse_mode)
 
-            var client = await MongoClient.connect(db_url);
-            var db = client.db(db_name);
-            var collection = db.collection('users');
+
             var cursor = await collection.find();
             cursor.forEach(function (doc) {
                 var user = _user2.default.fromJSON(doc);

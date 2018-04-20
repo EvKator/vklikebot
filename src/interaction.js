@@ -28,18 +28,15 @@ bot.onText(/\/start/, async function (msg, match) {
      " \n" +
      "  За АБСОЛЮТНО ЛЮБОЙ помощью можете обращаться в техподдержку (пункт \"Помощь\" главного меню). Мы - адекватные, общительные люди.";//"Привет! Этот бот поможет тебе накрутить лайки в соц.сетях, или заработать, просто лайкая других ";
         await nMenu.sendTextMessage(user, greeting);
-        //nMenu.sendMenu(user);
     }
     else{
         const greeting = "С тобой мы уже знакомы";
         await nMenu.sendTextMessage(user, greeting);
-        //nMenu.sendMenu(user);
     }
 });
 
 bot.onText(/(.*)/, async function (msg, match) {
     let user = await User.getSender(msg);
-    //bot.sendMessage(msg.from.id, match[1] );
     try{
         
         if(!user.ExistInDB)
@@ -69,19 +66,14 @@ bot.onText(/(.*)/, async function (msg, match) {
                     let required = ((/(\d*)/g).exec(match))[1];
                     await user.createVkPhotoLikeTask(link,match[1]);
                     await Admin.SendToAll("Появилось новое задание!");
-                    //nMenu.sendMenu(user);
-
                     break;
                 }
                 else if(user.status.search(queryPost) >= 0){
-                    //throw "Извини, функционал для этой задачи будет реализован в течение недели";
                     let link = user.status.match(queryPost)[1];
                     let required = ((/(\d*)/g).exec(match))[1];
                     required = ((/(\d*)/g).exec(match))[1];
                     await user.createVkPostLikeTask(link,match[1]);
                     await nMenu.sendTextMessage(user, "Молодец, задание создано успешно!");
-                    //nMenu.sendMenu(user);
-
                     break;
                 }
                 user.status = 'free';
@@ -91,7 +83,6 @@ bot.onText(/(.*)/, async function (msg, match) {
         console.log(err.stack);
         user.status = 'free';
         await nMenu.sendTextMessage(user, err);
-        //nMenu.sendMenu(user);
     }
 
 });

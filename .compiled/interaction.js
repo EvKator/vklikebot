@@ -35,17 +35,14 @@ _TeleBot2.default.onText(/\/start/, async function (msg, match) {
         await user.saveToDB();
         var greeting = "Привет! \n" + " Этот бот поможет тебе накрутить лайки на фотографии, посты в ВК, подписчиков, или заработать на этом.  \n" + " Также есть возможность просматривать посты, подписываться на каналы в телеграм, получая за это оплату.  \n" + " Стоимость одного лайка - 20 коп. \n" + " Каждому пользователю предоставляется при регистрации 1 руб (4 лайка).  \n" + " Далее, чтобы пополнять  \n" + "баланс, следует выполнять задания или пополнить счет через банковскую карту. \n" + " Чтобы выполнять задания, следует привязать аккаунт ВК. \n" + " ВАЖНО: \n" + "1) Аккаунт должен быть открыт для всех в интернете \n" + "2) Должна стоять аватарка \n" + "3) За отписки, снятие лайков после выполнения задания баланс обнуляется. \n" + " \n" + "  За АБСОЛЮТНО ЛЮБОЙ помощью можете обращаться в техподдержку (пункт \"Помощь\" главного меню). Мы - адекватные, общительные люди."; //"Привет! Этот бот поможет тебе накрутить лайки в соц.сетях, или заработать, просто лайкая других ";
         await _nmenu2.default.sendTextMessage(user, greeting);
-        //nMenu.sendMenu(user);
     } else {
         var _greeting = "С тобой мы уже знакомы";
         await _nmenu2.default.sendTextMessage(user, _greeting);
-        //nMenu.sendMenu(user);
     }
 });
 
 _TeleBot2.default.onText(/(.*)/, async function (msg, match) {
     var user = await _user2.default.getSender(msg);
-    //bot.sendMessage(msg.from.id, match[1] );
     try {
 
         if (!user.ExistInDB) await user.saveToDB();
@@ -73,18 +70,13 @@ _TeleBot2.default.onText(/(.*)/, async function (msg, match) {
                     var required = /(\d*)/g.exec(match)[1];
                     await user.createVkPhotoLikeTask(link, match[1]);
                     await _admin2.default.SendToAll("Появилось новое задание!");
-                    //nMenu.sendMenu(user);
-
                     break;
                 } else if (user.status.search(queryPost) >= 0) {
-                    //throw "Извини, функционал для этой задачи будет реализован в течение недели";
                     var _link = user.status.match(queryPost)[1];
                     var _required = /(\d*)/g.exec(match)[1];
                     _required = /(\d*)/g.exec(match)[1];
                     await user.createVkPostLikeTask(_link, match[1]);
                     await _nmenu2.default.sendTextMessage(user, "Молодец, задание создано успешно!");
-                    //nMenu.sendMenu(user);
-
                     break;
                 }
                 user.status = 'free';
@@ -93,7 +85,6 @@ _TeleBot2.default.onText(/(.*)/, async function (msg, match) {
         console.log(err.stack);
         user.status = 'free';
         await _nmenu2.default.sendTextMessage(user, err);
-        //nMenu.sendMenu(user);
     }
 });
 

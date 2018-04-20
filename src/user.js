@@ -1,16 +1,11 @@
 import VkPhotoLikeTask from "./VkPhotoLikeTask";
-
 const  cheerio = require('cheerio');
 const  request = require('request-promise');
-const MongoClient = require('mongodb').MongoClient;
 import bot from './TeleBot';
-const assert = require('assert');
-const db_url = 'mongodb://evkator:isl0952214823bag@ds249355.mlab.com:49355/vklikebot';//'mongodb://localhost:27017/vklikebot';
-const db_name = 'vklikebot';
 import Task from './task.js';
-//var nmenu = require('./nmenu');
-
+import DB from './DB';
 import VkAcc from './VkAcc';
+
 export default class User{
 
     constructor(id, username, first_name, last_name, status, balance, key, vk_acc, menu_id, last_message_id){
@@ -37,7 +32,7 @@ export default class User{
         this._last_message_id = last_message_id;
     }
 
-    async confirmTask(taskname){
+    async confirmfTask(taskname){
         let task = await Task.fromDB(taskname);
         let taskDone;
         try{
@@ -84,7 +79,7 @@ export default class User{
 
         try {
             await task.saveToDB();
-            this._balance -= task.cost * required;
+            this._spendMoney(task.cost * required);
         }
         catch (err){
             console.log('err');
@@ -111,54 +106,26 @@ export default class User{
 
         let task = await Task.Create(url, 'vk_post_like_task', required, this.id);//new VkPhotoLikeTask(url, required, this.id);
 
-        try {
-            await task.saveToDB();
-            this._balance -= task.cost * required;
-        }
-        catch (err){
-            console.log('err');
-            console.log(err.stack);
-            throw("Неведомая ошибка на сервере. Пожалуйста, расскажи об этом техподдержке (последний пункт в главном меню)")
-        }
+        await task.saveToDB();
+        this._spendMoney(task.cost * required);
 
     }
 
     async update(){
-        let client;
-        try {
-            let jsonU = this.toJSON();
-            client = await MongoClient.connect(db_url);
-
-            const db = client.db(db_name);
-            db.collection('users').update({id : this.id}, this.toJSON());
-        } catch (err) {
-            //console.log('err');
-            //console.log(err.stack);
-        }
-
-        if (client) {
-            client.close();
-        }
+        await DB.UpdateUser(this);
     }
 
-    static async vkAccUsed(uname){
+    static async vkAccUsed(vk_uname){
         let result = true;
-            let client;
-            let user;
-            client = await MongoClient.connect(db_url);
-            const db = client.db(db_name);
-            const collection = db.collection('users');
-            let res = await collection.findOne({'vk_acc.uname':uname});
-            try {
-                user = User.fromJSON(res);
-                result = true;
-            }
-            catch (err){
-                //console.log('err');
-                //console.log(err);
-                result = false;
-            }
-            return result;
+        let res = await DB.FindUserByVk(vk_uname)
+        try {
+            user = User.fromJSON(res);
+            result = true;
+        }
+        catch (err){
+            result = false;
+        }
+        return result;
     }
 
     async delVkAcc(){
@@ -198,11 +165,7 @@ export default class User{
         else throw "Ошибка, аккаунт уже привязан к другому пользователю";
     }
 
-    sendMessage(text){
-        bot.sendMessage(this.id, text);
-    }
-
-    async Pay(coins){
+    async getPaid(coins){
         this._balance = Number(this._balance) + Number(coins);
         await this.update();
     }
@@ -220,40 +183,12 @@ export default class User{
     }
 
     async saveToDB(){
-        let client;
-        try {
-            let jsonU = this.toJSON();
-            jsonU.status = 'created';
-
-            client = await MongoClient.connect(db_url);
-            const db = client.db(db_name);
-            await db.collection('users').insertOne(jsonU);
-        } catch (err) {
-            //console.log('err');
-            //console.log(err.stack);
-            throw err;
-        }
-
-        if (client) {
-            client.close();
-        }
+        await DB.InsertUser(this);
     }
 
     static async fromDB(id){
-        let client;
-        let user;
-        try {
-            client = await MongoClient.connect(db_url);
-            const db = client.db(db_name);
-            const collection = db.collection('users');
-            let res = await collection.findOne({id: id}, { });
-            user = User.fromJSON(res);
-        }
-        catch (err){
-            //console.log('err');
-            //console.log(err);
-            throw err;
-        }
+        const jsonU = await DB.FindUser(id);
+        let user = User.fromJSON(res);
         return user;
     }
 
@@ -285,56 +220,74 @@ export default class User{
         return jsonU;
     }
 
-
+    async _spendMoney(amount){
+        this._balance-=amount;
+        await this.update();
+    }
     /////////////////////////////////getters,setters
     set menu_id(menu_id){
         this._menu_id = menu_id;
         this.update();
     }
+
     get menu_id(){
         return this._menu_id;
     }
+    
     set status(status){
         this._status = status;
         this.update();
     }
+    
     get status(){
         return this._status;
     }
+    
     get ExistInDB(){
         return this._existInDB;
     }
+    
     get id(){
         return this._id;
     }
+    
     get username(){
         return this._username;
     }
+    
     get first_name(){
         return this._first_name;
     }
+    
     get last_name(){
         return this._last_name;
     }
+    
     get status(){
         return this._status;
     }
+    
     get balance(){
         return this._balance;
     }
+    
     set key(key){
         this._key = key;
         this.update();
     }
+    
     get key(){
         return this._key;
     }
+    
     get vk_acc(){
         return this._vk_acc;
     }
+    
     get last_message_id(){
         return this._last_message_id;
     }
+    
     set last_message_id(val){
         this._last_message_id = val;
         this.update();

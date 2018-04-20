@@ -18,6 +18,10 @@ var _task = require('./task.js');
 
 var _task2 = _interopRequireDefault(_task);
 
+var _DB = require('./DB');
+
+var _DB2 = _interopRequireDefault(_DB);
+
 var _VkAcc = require('./VkAcc');
 
 var _VkAcc2 = _interopRequireDefault(_VkAcc);
@@ -28,12 +32,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var cheerio = require('cheerio');
 var request = require('request-promise');
-var MongoClient = require('mongodb').MongoClient;
-
-var assert = require('assert');
-var db_url = 'mongodb://evkator:isl0952214823bag@ds249355.mlab.com:49355/vklikebot'; //'mongodb://localhost:27017/vklikebot';
-var db_name = 'vklikebot';
-//var nmenu = require('./nmenu');
 
 var User = function () {
     function User(id, username, first_name, last_name, status, balance, key, vk_acc, menu_id, last_message_id) {
@@ -61,8 +59,8 @@ var User = function () {
     }
 
     _createClass(User, [{
-        key: 'confirmTask',
-        value: async function confirmTask(taskname) {
+        key: 'confirmfTask',
+        value: async function confirmfTask(taskname) {
             var _this = this;
 
             var task = await _task2.default.fromDB(taskname);
@@ -106,7 +104,7 @@ var User = function () {
 
             try {
                 await task.saveToDB();
-                this._balance -= task.cost * required;
+                this._spendMoney(task.cost * required);
             } catch (err) {
                 console.log('err');
                 console.log(err.stack);
@@ -127,33 +125,13 @@ var User = function () {
 
             var task = await _task2.default.Create(url, 'vk_post_like_task', required, this.id); //new VkPhotoLikeTask(url, required, this.id);
 
-            try {
-                await task.saveToDB();
-                this._balance -= task.cost * required;
-            } catch (err) {
-                console.log('err');
-                console.log(err.stack);
-                throw "Неведомая ошибка на сервере. Пожалуйста, расскажи об этом техподдержке (последний пункт в главном меню)";
-            }
+            await task.saveToDB();
+            this._spendMoney(task.cost * required);
         }
     }, {
         key: 'update',
         value: async function update() {
-            var client = void 0;
-            try {
-                var jsonU = this.toJSON();
-                client = await MongoClient.connect(db_url);
-
-                var db = client.db(db_name);
-                db.collection('users').update({ id: this.id }, this.toJSON());
-            } catch (err) {
-                //console.log('err');
-                //console.log(err.stack);
-            }
-
-            if (client) {
-                client.close();
-            }
+            await _DB2.default.UpdateUser(this);
         }
     }, {
         key: 'delVkAcc',
@@ -192,36 +170,15 @@ var User = function () {
             } else throw "Ошибка, аккаунт уже привязан к другому пользователю";
         }
     }, {
-        key: 'sendMessage',
-        value: function sendMessage(text) {
-            _TeleBot2.default.sendMessage(this.id, text);
-        }
-    }, {
-        key: 'Pay',
-        value: async function Pay(coins) {
+        key: 'getPaid',
+        value: async function getPaid(coins) {
             this._balance = Number(this._balance) + Number(coins);
             await this.update();
         }
     }, {
         key: 'saveToDB',
         value: async function saveToDB() {
-            var client = void 0;
-            try {
-                var jsonU = this.toJSON();
-                jsonU.status = 'created';
-
-                client = await MongoClient.connect(db_url);
-                var db = client.db(db_name);
-                await db.collection('users').insertOne(jsonU);
-            } catch (err) {
-                //console.log('err');
-                //console.log(err.stack);
-                throw err;
-            }
-
-            if (client) {
-                client.close();
-            }
+            await _DB2.default.InsertUser(this);
         }
     }, {
         key: 'createdTasks',
@@ -248,7 +205,12 @@ var User = function () {
             };
             return jsonU;
         }
-
+    }, {
+        key: '_spendMoney',
+        value: async function _spendMoney(amount) {
+            this._balance -= amount;
+            await this.update();
+        }
         /////////////////////////////////getters,setters
 
     }, {
@@ -324,20 +286,13 @@ var User = function () {
         }
     }], [{
         key: 'vkAccUsed',
-        value: async function vkAccUsed(uname) {
+        value: async function vkAccUsed(vk_uname) {
             var result = true;
-            var client = void 0;
-            var user = void 0;
-            client = await MongoClient.connect(db_url);
-            var db = client.db(db_name);
-            var collection = db.collection('users');
-            var res = await collection.findOne({ 'vk_acc.uname': uname });
+            var res = await _DB2.default.FindUserByVk(vk_uname);
             try {
                 user = User.fromJSON(res);
                 result = true;
             } catch (err) {
-                //console.log('err');
-                //console.log(err);
                 result = false;
             }
             return result;
@@ -357,19 +312,8 @@ var User = function () {
     }, {
         key: 'fromDB',
         value: async function fromDB(id) {
-            var client = void 0;
-            var user = void 0;
-            try {
-                client = await MongoClient.connect(db_url);
-                var db = client.db(db_name);
-                var collection = db.collection('users');
-                var res = await collection.findOne({ id: id }, {});
-                user = User.fromJSON(res);
-            } catch (err) {
-                //console.log('err');
-                //console.log(err);
-                throw err;
-            }
+            var jsonU = await _DB2.default.FindUser(id);
+            var user = User.fromJSON(res);
             return user;
         }
     }, {
