@@ -1,6 +1,6 @@
 const MongoClient = require('mongodb').MongoClient;
-const db_url = 'mongodb://evkator:isl0952214823bag@ds249355.mlab.com:49355/vklikebot';//'mongodb://localhost:27017/vklikebot';
-const db_name = 'vklikebot';
+const db_url = "DBURL"
+const db_name = 'DBNAME';
 
 export default class DB
 {
